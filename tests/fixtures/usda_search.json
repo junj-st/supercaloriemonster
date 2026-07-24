@@ -1,0 +1,22 @@
+{
+  "foods": [
+    {
+      "fdcId": 171077,
+      "description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+      "brandOwner": null,
+      "foodNutrients": [
+        {"nutrientNumber": "1008", "value": 165.0},
+        {"nutrientNumber": "1003", "value": 31.0},
+        {"nutrientNumber": "1005", "value": 0.0},
+        {"nutrientNumber": "1004", "value": 3.57}
+      ]
+    },
+    {
+      "fdcId": 999999,
+      "description": "Mystery food with no energy",
+      "foodNutrients": [
+        {"nutrientNumber": "1003", "value": 5.0}
+      ]
+    }
+  ]
+}
