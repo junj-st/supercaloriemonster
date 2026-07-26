@@ -588,7 +588,7 @@ git commit -m "feat: add Pydantic schemas and NormalizedFood shape"
 **Interfaces:**
 - Consumes: `app.schemas.NormalizedFood`.
 - Produces:
-  - `normalize_usda(item: dict) -> NormalizedFood | None` — maps one USDA FDC `foods[]` entry. USDA `foodNutrients` are already per-100g; nutrient numbers: Energy `1008` (kcal), Protein `1003`, Carbohydrate `1005`, Total lipid/fat `1004`. Returns `None` if energy is missing.
+  - `normalize_usda(item: dict) -> NormalizedFood | None` — maps one USDA FDC `foods[]` entry. USDA `foodNutrients` are already per-100g. **Correction (verified against the live `/foods/search` API during execution):** match on the integer `nutrientId` field, NOT `nutrientNumber`. The IDs are Energy `1008` (kcal), Protein `1003`, Carbohydrate `1005`, Total lipid/fat `1004`; the `nutrientNumber` field holds the legacy 3-digit strings (`"208"/"203"/"205"/"204"`) and must not be used for matching. Returns `None` if energy is missing. (The Step-1/2/5 fixture and code blocks below show the original, buggy `nutrientNumber` mapping — the committed implementation uses `nutrientId`.)
   - `normalize_off(product: dict) -> NormalizedFood | None` — maps one OFF `products[]` entry; nutrients live under `nutriments` as `energy-kcal_100g`, `proteins_100g`, `carbohydrates_100g`, `fat_100g`; serving from `serving_quantity` (grams) + `serving_size` (text). Returns `None` if energy is missing.
 
 - [ ] **Step 1: Create `tests/fixtures/usda_search.json`** (trimmed real-shape sample)
