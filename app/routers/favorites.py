@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.crud import to_normalized, upsert_food
@@ -51,18 +51,25 @@ def delete_favorite(fav_id: int, db: Session = Depends(get_db)) -> Response:
 
 @router.get("/recents", response_model=list[NormalizedFood])
 def recents(limit: int = 10, db: Session = Depends(get_db)) -> list[NormalizedFood]:
-    rows = db.execute(
-        select(Log.food_id).order_by(desc(Log.created_at), desc(Log.id))
-    ).scalars().all()
-    seen: set[int] = set()
-    out: list[NormalizedFood] = []
-    for food_id in rows:
-        if food_id in seen:
-            continue
-        seen.add(food_id)
-        food = db.get(Food, food_id)
-        if food is not None:
-            out.append(to_normalized(food))
-        if len(out) >= limit:
-            break
-    return out
+    if limit <= 0:
+        return []
+    last_log = (
+        select(
+            Log.food_id.label("food_id"),
+            func.max(Log.created_at).label("last_created"),
+            func.max(Log.id).label("last_id"),
+        )
+        .group_by(Log.food_id)
+        .subquery()
+    )
+    rows = (
+        db.execute(
+            select(Food)
+            .join(last_log, Food.id == last_log.c.food_id)
+            .order_by(desc(last_log.c.last_created), desc(last_log.c.last_id))
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    return [to_normalized(food) for food in rows]

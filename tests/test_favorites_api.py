@@ -38,3 +38,18 @@ def test_recents_returns_distinct_recent_foods(client):
     assert names[0] == "Rice"  # most recent first
     assert names.count("Rice") == 1  # distinct
     assert "Eggs" in names
+
+
+def test_recents_respects_limit(client):
+    client.post("/logs", json=_log_body(sid="1", name="Rice"))
+    client.post("/logs", json=_log_body(sid="2", name="Eggs"))
+    client.post("/logs", json=_log_body(sid="3", name="Oats"))
+    recents = client.get("/recents", params={"limit": 2}).json()
+    names = [r["name"] for r in recents]
+    assert len(recents) == 2
+    assert names == ["Oats", "Eggs"]  # two most recent distinct foods, newest first
+
+
+def test_delete_missing_favorite_returns_404(client):
+    resp = client.delete("/favorites/99999")
+    assert resp.status_code == 404
