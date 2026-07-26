@@ -38,6 +38,8 @@ def test_normalize_off_maps_and_reads_serving():
     assert f.brand == "Ferrero"
     assert f.calories_100g == 539
     assert f.protein_100g == 6.3
+    assert f.carbs_100g == 57.5
+    assert f.fat_100g == 30.9
     assert f.serving_grams == 15
     assert f.serving_desc == "15 g"
 
@@ -45,3 +47,21 @@ def test_normalize_off_maps_and_reads_serving():
 def test_normalize_off_returns_none_without_energy():
     prod = _load("off_search.json")["products"][1]
     assert normalize_off(prod) is None
+
+
+def test_normalize_usda_missing_macros_default_zero():
+    item = _load("usda_search.json")["foods"][2]
+    f = normalize_usda(item)
+    assert f.calories_100g == 200.0
+    assert f.protein_100g == 0.0
+    assert f.carbs_100g == 0.0
+    assert f.fat_100g == 0.0
+
+
+def test_normalize_off_missing_macros_default_zero():
+    prod = _load("off_search.json")["products"][2]
+    f = normalize_off(prod)
+    assert f.calories_100g == 250
+    assert f.protein_100g == 0.0
+    assert f.carbs_100g == 0.0
+    assert f.fat_100g == 0.0

@@ -5,17 +5,24 @@
       "description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
       "brandOwner": null,
       "foodNutrients": [
-        {"nutrientNumber": "1008", "value": 165.0},
-        {"nutrientNumber": "1003", "value": 31.0},
-        {"nutrientNumber": "1005", "value": 0.0},
-        {"nutrientNumber": "1004", "value": 3.57}
+        {"nutrientId": 1008, "nutrientNumber": "208", "nutrientName": "Energy", "unitName": "KCAL", "value": 165.0},
+        {"nutrientId": 1003, "nutrientNumber": "203", "nutrientName": "Protein", "unitName": "G", "value": 31.0},
+        {"nutrientId": 1005, "nutrientNumber": "205", "nutrientName": "Carbohydrate, by difference", "unitName": "G", "value": 0.0},
+        {"nutrientId": 1004, "nutrientNumber": "204", "nutrientName": "Total lipid (fat)", "unitName": "G", "value": 3.57}
       ]
     },
     {
       "fdcId": 999999,
       "description": "Mystery food with no energy",
       "foodNutrients": [
-        {"nutrientNumber": "1003", "value": 5.0}
+        {"nutrientId": 1003, "nutrientNumber": "203", "nutrientName": "Protein", "unitName": "G", "value": 5.0}
+      ]
+    },
+    {
+      "fdcId": 171078,
+      "description": "Energy only, missing macros",
+      "foodNutrients": [
+        {"nutrientId": 1008, "nutrientNumber": "208", "nutrientName": "Energy", "unitName": "KCAL", "value": 200.0}
       ]
     }
   ]

@@ -1,19 +1,19 @@
 from app.schemas import NormalizedFood
 
-# USDA FoodData Central nutrient numbers (values are per 100g)
-_USDA_ENERGY = "1008"
-_USDA_PROTEIN = "1003"
-_USDA_CARBS = "1005"
-_USDA_FAT = "1004"
+# USDA FoodData Central nutrient IDs (values are per 100g)
+_USDA_ENERGY = 1008
+_USDA_PROTEIN = 1003
+_USDA_CARBS = 1005
+_USDA_FAT = 1004
 
 
-def _usda_nutrients(item: dict) -> dict[str, float]:
-    out: dict[str, float] = {}
+def _usda_nutrients(item: dict) -> dict[int, float]:
+    out: dict[int, float] = {}
     for n in item.get("foodNutrients", []):
-        num = str(n.get("nutrientNumber", ""))
+        nid = n.get("nutrientId")
         val = n.get("value")
-        if num and val is not None:
-            out[num] = float(val)
+        if nid is not None and val is not None:
+            out[int(nid)] = float(val)
     return out
 
 
