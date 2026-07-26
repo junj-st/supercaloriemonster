@@ -1,6 +1,10 @@
 const $ = (sel) => document.querySelector(sel);
 const api = (path, opts) => fetch(path, opts).then((r) => (r.status === 204 ? null : r.json()));
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let pendingFood = null; // NormalizedFood awaiting log confirmation
 
@@ -27,7 +31,7 @@ function renderMeals(el, meals) {
     if (!entries.length) return "";
     const rows = entries.map((e) => `
       <div class="entry">
-        <div><div>${e.name}</div><small>${e.amount_g} g · ${e.calories} cal</small></div>
+        <div><div>${esc(e.name)}</div><small>${e.amount_g} g · ${e.calories} cal</small></div>
         <button data-del="${e.id}">✕</button>
       </div>`).join("");
     return `<div class="meal-block"><h4>${meal}</h4>${rows}</div>`;
@@ -61,7 +65,7 @@ $("#search-box").addEventListener("input", (e) => {
 function renderResults(el, foods) {
   $(el).innerHTML = foods.map((f, i) => `
     <div class="result" data-i="${i}">
-      <div><div>${f.name}</div><small>${f.brand || "generic"} · ${f.calories_100g} cal/100g</small></div>
+      <div><div>${esc(f.name)}</div><small>${esc(f.brand || "generic")} · ${f.calories_100g} cal/100g</small></div>
       <button>＋</button>
     </div>`).join("");
   $(el).querySelectorAll(".result").forEach((row) =>
@@ -74,7 +78,7 @@ async function loadQuickLists() {
   const favFoods = favorites.map((f) => f.food);
   const section = (title, foods) => foods.length
     ? `<h4>${title}</h4>` + foods.map((f, i) =>
-        `<div class="quick" data-list="${title}" data-i="${i}"><span>${f.name}</span><button>＋</button></div>`).join("")
+        `<div class="quick" data-list="${title}" data-i="${i}"><span>${esc(f.name)}</span><button>＋</button></div>`).join("")
     : "";
   $("#quick-lists").innerHTML = section("Recents", recents) + section("Favorites", favFoods);
   $("#quick-lists").querySelectorAll(".quick").forEach((row) => {
@@ -84,24 +88,72 @@ async function loadQuickLists() {
 }
 
 // ---- log dialog ----
+let syncingAmount = false; // guards against servings<->grams feedback loops
+
 function openLogDialog(food) {
   pendingFood = food;
   $("#log-food-name").textContent = food.name;
-  $("#log-grams").value = food.serving_grams || 100;
-  $("#serving-hint").textContent = food.serving_grams
-    ? `1 serving ≈ ${food.serving_grams} g${food.serving_desc ? " (" + food.serving_desc + ")" : ""}` : "";
+  $("#serving-hint").textContent = "";
+  const servingsInput = $("#log-servings");
+  const gramsInput = $("#log-grams");
+  if (food.serving_grams) {
+    servingsInput.disabled = false;
+    servingsInput.value = 1;
+    gramsInput.value = food.serving_grams;
+    $("#serving-hint").textContent =
+      `1 serving ≈ ${food.serving_grams} g${food.serving_desc ? " (" + food.serving_desc + ")" : ""}`;
+  } else {
+    servingsInput.disabled = true;
+    servingsInput.value = "";
+    gramsInput.value = 100;
+  }
   $("#log-dialog").classList.remove("hidden");
 }
+
+// two-way sync: editing servings updates grams, editing grams updates servings.
+// Programmatic .value assignment does not fire "input" events, and the
+// syncingAmount flag is an extra guard against any accidental re-entrancy.
+$("#log-servings").addEventListener("input", () => {
+  if (syncingAmount || !pendingFood || !pendingFood.serving_grams) return;
+  const servings = parseFloat($("#log-servings").value);
+  if (!Number.isFinite(servings)) return;
+  syncingAmount = true;
+  $("#log-grams").value = Math.round(servings * pendingFood.serving_grams);
+  syncingAmount = false;
+});
+$("#log-grams").addEventListener("input", () => {
+  if (syncingAmount || !pendingFood || !pendingFood.serving_grams) return;
+  const grams = parseFloat($("#log-grams").value);
+  if (!Number.isFinite(grams)) return;
+  syncingAmount = true;
+  $("#log-servings").value = Math.round((grams / pendingFood.serving_grams) * 100) / 100;
+  syncingAmount = false;
+});
+
 $("#log-cancel").addEventListener("click", () => $("#log-dialog").classList.add("hidden"));
 $("#log-save").addEventListener("click", async () => {
-  await api("/logs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      food: pendingFood, date: today(),
-      meal_type: $("#log-meal").value, amount_g: parseFloat($("#log-grams").value),
-    }),
-  });
+  const grams = parseFloat($("#log-grams").value);
+  if (!Number.isFinite(grams) || grams <= 0) {
+    $("#serving-hint").textContent = "Enter a valid amount in grams";
+    return;
+  }
+  try {
+    const resp = await fetch("/logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        food: pendingFood, date: today(),
+        meal_type: $("#log-meal").value, amount_g: grams,
+      }),
+    });
+    if (!resp.ok) {
+      $("#serving-hint").textContent = "Could not save entry. Please try again.";
+      return;
+    }
+  } catch (e) {
+    $("#serving-hint").textContent = "Could not save entry. Please try again.";
+    return;
+  }
   $("#log-dialog").classList.add("hidden");
   document.querySelector('nav button[data-view="today"]').click();
 });
