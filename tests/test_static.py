@@ -24,3 +24,24 @@ def test_static_assets_served():
     resp = client.get("/static/style.css")
     assert resp.status_code == 200
     assert "text/css" in resp.headers["content-type"]
+
+
+def test_manifest_served():
+    resp = client.get("/static/manifest.json")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["name"] == "supercaloriemonster"
+    assert body["display"] == "standalone"
+    assert body["start_url"] == "/"
+
+
+def test_service_worker_served():
+    resp = client.get("/static/sw.js")
+    assert resp.status_code == 200
+    assert "javascript" in resp.headers["content-type"]
+
+
+def test_icon_served():
+    resp = client.get("/static/icon.svg")
+    assert resp.status_code == 200
+    assert "svg" in resp.headers["content-type"]
