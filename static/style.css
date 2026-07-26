@@ -1,0 +1,30 @@
+:root { --bg:#0b1220; --card:#111827; --fg:#e5e7eb; --muted:#9ca3af; --accent:#22c55e; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+header { position:sticky; top:0; background:var(--card); padding:12px 16px; }
+header h1 { margin:0 0 8px; font-size:20px; }
+nav { display:flex; gap:8px; }
+nav button { flex:1; padding:10px; border:0; border-radius:8px; background:#1f2937; color:var(--fg); }
+nav button.active { background:var(--accent); color:#04210f; font-weight:600; }
+main { padding:16px; max-width:640px; margin:0 auto; }
+.view.hidden, .hidden { display:none; }
+.totals { display:flex; gap:8px; margin-bottom:16px; }
+.totals .cell { flex:1; background:var(--card); border-radius:10px; padding:10px; text-align:center; }
+.totals .cell b { display:block; font-size:18px; }
+.totals .cell span { color:var(--muted); font-size:12px; }
+.meal-block h4 { margin:16px 0 6px; color:var(--muted); text-transform:capitalize; }
+.entry, .result, .quick { display:flex; justify-content:space-between; align-items:center;
+  background:var(--card); padding:10px 12px; border-radius:8px; margin-bottom:6px; }
+.entry small, .result small { color:var(--muted); }
+.entry button { background:transparent; border:0; color:#ef4444; font-size:18px; }
+input, select { background:#0b1220; color:var(--fg); border:1px solid #374151; border-radius:8px; padding:10px; width:100%; }
+#search-box { margin-bottom:12px; }
+#log-dialog { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:flex-end; }
+#log-dialog.hidden { display:none; }
+.dialog-card { background:var(--card); width:100%; max-width:640px; margin:0 auto; padding:16px; border-radius:16px 16px 0 0; }
+.dialog-card label { display:block; margin:12px 0; }
+.dialog-actions { display:flex; gap:8px; margin-top:16px; }
+.dialog-actions button { flex:1; padding:12px; border:0; border-radius:8px; }
+#log-save { background:var(--accent); color:#04210f; font-weight:600; }
+#log-cancel { background:#374151; color:var(--fg); }
+.hint { color:var(--muted); font-size:12px; }

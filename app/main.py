@@ -1,6 +1,8 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.db import init_db
 from app.routers import favorites, foods, logs
@@ -23,3 +25,10 @@ def health():
 app.include_router(foods.router)
 app.include_router(logs.router)
 app.include_router(favorites.router)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse("static/index.html")
