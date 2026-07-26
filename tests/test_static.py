@@ -33,10 +33,18 @@ def test_manifest_served():
     assert body["name"] == "supercaloriemonster"
     assert body["display"] == "standalone"
     assert body["start_url"] == "/"
+    assert body["short_name"] == "scm"
+    assert isinstance(body["icons"], list) and len(body["icons"]) > 0
 
 
 def test_service_worker_served():
     resp = client.get("/static/sw.js")
+    assert resp.status_code == 200
+    assert "javascript" in resp.headers["content-type"]
+
+
+def test_service_worker_served_at_root():
+    resp = client.get("/sw.js")
     assert resp.status_code == 200
     assert "javascript" in resp.headers["content-type"]
 

@@ -19,12 +19,12 @@ self.addEventListener("fetch", (e) => {
 
   const url = new URL(request.url);
   // network-first for day summaries so recently-viewed days work offline
-  if (url.pathname.startsWith("/logs/day/")) {
+  if (url.origin === location.origin && url.pathname.startsWith("/logs/day/")) {
     e.respondWith(
       fetch(request)
-        .then((resp) => {
-          const copy = resp.clone();
-          caches.open(CACHE).then((c) => c.put(request, copy));
+        .then(async (resp) => {
+          const cache = await caches.open(CACHE);
+          await cache.put(request, resp.clone());
           return resp;
         })
         .catch(() => caches.match(request))
