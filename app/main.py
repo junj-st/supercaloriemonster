@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from app.db import init_db
-from app.routers import foods
+from app.routers import foods, logs
 
 logging.basicConfig(level=logging.INFO)
 
@@ -21,3 +21,4 @@ def health():
 
 
 app.include_router(foods.router)
+app.include_router(logs.router)
