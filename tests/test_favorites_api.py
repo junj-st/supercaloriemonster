@@ -22,8 +22,10 @@ def test_add_list_delete_favorite(client):
 
 
 def test_favorite_same_food_updates_label(client):
-    client.post("/favorites", json={"food": _food(), "label": "a"})
-    client.post("/favorites", json={"food": _food(), "label": "b"})
+    first = client.post("/favorites", json={"food": _food(), "label": "a"})
+    assert first.status_code == 201
+    second = client.post("/favorites", json={"food": _food(), "label": "b"})
+    assert second.status_code == 200
     listed = client.get("/favorites").json()
     assert len(listed) == 1
     assert listed[0]["label"] == "b"

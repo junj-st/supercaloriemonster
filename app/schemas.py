@@ -2,7 +2,8 @@ from datetime import date as _date
 
 from pydantic import BaseModel, field_validator
 
-MEAL_TYPES: set[str] = {"breakfast", "lunch", "dinner", "snack"}
+MEAL_ORDER: list[str] = ["breakfast", "lunch", "dinner", "snack"]
+MEAL_TYPES: set[str] = set(MEAL_ORDER)
 
 
 class NormalizedFood(BaseModel):

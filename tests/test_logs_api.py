@@ -21,6 +21,7 @@ def test_day_summary_groups_and_totals(client):
     resp = client.get("/logs/day/2026-07-24")
     body = resp.json()
     assert set(body["meals"].keys()) == {"breakfast", "lunch", "dinner", "snack"}
+    assert list(body["meals"].keys()) == ["breakfast", "lunch", "dinner", "snack"]
     assert len(body["meals"]["breakfast"]) == 1
     assert len(body["meals"]["dinner"]) == 0
     assert body["totals"]["calories"] == 130.0 + 260.0

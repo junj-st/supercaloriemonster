@@ -36,7 +36,10 @@ async def search(
 ) -> SearchResult:
     if not q.strip():
         return SearchResult(results=[], partial=False)
-    async with httpx.AsyncClient(timeout=settings.http_timeout) as client:
+    async with httpx.AsyncClient(
+        timeout=settings.http_timeout,
+        headers={"User-Agent": "supercaloriemonster/1.0 (https://github.com/junj-st/supercaloriemonster)"},
+    ) as client:
         return await search_foods(q.strip(), sources, client)
 
 

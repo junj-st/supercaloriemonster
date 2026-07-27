@@ -24,7 +24,7 @@ def list_favorites(db: Session = Depends(get_db)) -> list[FavoriteOut]:
 
 
 @router.post("/favorites", response_model=FavoriteOut, status_code=201)
-def add_favorite(body: FavoriteIn, db: Session = Depends(get_db)) -> FavoriteOut:
+def add_favorite(body: FavoriteIn, response: Response, db: Session = Depends(get_db)) -> FavoriteOut:
     food = upsert_food(db, body.food)
     fav = db.execute(
         select(Favorite).where(Favorite.food_id == food.id)
@@ -34,6 +34,7 @@ def add_favorite(body: FavoriteIn, db: Session = Depends(get_db)) -> FavoriteOut
         db.add(fav)
     else:
         fav.label = body.label
+        response.status_code = 200
     db.commit()
     db.refresh(fav)
     return _favorite_out(fav, food)

@@ -17,6 +17,7 @@ document.querySelectorAll("nav button").forEach((btn) => {
     $("#view-" + btn.dataset.view).classList.remove("hidden");
     if (btn.dataset.view === "today") loadDay(today(), "#totals", "#day-meals");
     if (btn.dataset.view === "search") loadQuickLists();
+    if (btn.dataset.view === "history") loadDay($("#history-date").value || today(), "#history-totals", "#history-meals");
   });
 });
 
@@ -51,12 +52,15 @@ async function loadDay(date, totalsEl, mealsEl) {
 
 // ---- search ----
 let searchTimer = null;
+let searchSeq = 0;
 $("#search-box").addEventListener("input", (e) => {
   clearTimeout(searchTimer);
   const q = e.target.value.trim();
   if (!q) return loadQuickLists();
   searchTimer = setTimeout(async () => {
+    const seq = ++searchSeq;
     const res = await api("/foods/search?q=" + encodeURIComponent(q));
+    if (seq !== searchSeq) return; // a newer search has since started; discard stale results
     renderResults("#search-results", res.results);
     $("#quick-lists").innerHTML = res.partial ? "<small>Some sources were unavailable.</small>" : "";
   }, 300);

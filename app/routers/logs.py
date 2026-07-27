@@ -8,7 +8,7 @@ from app.crud import compute_macros, upsert_food
 from app.db import get_db
 from app.models import Food, Log
 from app.schemas import (
-    MEAL_TYPES,
+    MEAL_ORDER,
     DayOut,
     LogCreate,
     LogEntryOut,
@@ -71,7 +71,7 @@ def day_summary(day: date, db: Session = Depends(get_db)) -> DayOut:
     rows = db.execute(
         select(Log, Food).join(Food, Log.food_id == Food.id).where(Log.date == day)
     ).all()
-    meals: dict[str, list[LogEntryOut]] = {m: [] for m in sorted(MEAL_TYPES)}
+    meals: dict[str, list[LogEntryOut]] = {m: [] for m in MEAL_ORDER}
     totals = Totals()
     for log, food in rows:
         entry = _entry_out(log, food)
