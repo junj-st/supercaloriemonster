@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
@@ -33,7 +33,7 @@ def _entry_out(log: Log, food: Food) -> LogEntryOut:
 def create_log(body: LogCreate, db: Session = Depends(get_db)) -> LogEntryOut:
     food = upsert_food(db, body.food)
     log = Log(food_id=food.id, date=body.date, meal_type=body.meal_type,
-              amount_g=body.amount_g, created_at=datetime.utcnow())
+              amount_g=body.amount_g, created_at=datetime.now(timezone.utc))
     db.add(log)
     db.commit()
     db.refresh(log)

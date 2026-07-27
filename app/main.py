@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -9,12 +10,14 @@ from app.routers import favorites, foods, logs
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="supercaloriemonster")
 
-
-@app.on_event("startup")
-def _startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     init_db()
+    yield
+
+
+app = FastAPI(title="supercaloriemonster", lifespan=lifespan)
 
 
 @app.get("/health")

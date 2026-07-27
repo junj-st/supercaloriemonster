@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -34,7 +34,7 @@ def upsert_food(db: Session, food: NormalizedFood) -> Food:
     existing.fat_100g = food.fat_100g
     existing.serving_desc = food.serving_desc
     existing.serving_grams = food.serving_grams
-    existing.cached_at = datetime.utcnow()
+    existing.cached_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(existing)
     return existing

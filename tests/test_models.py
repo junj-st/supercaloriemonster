@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import pytest
 from sqlalchemy import create_engine
@@ -20,13 +20,13 @@ def test_food_log_favorite_roundtrip():
     food = Food(
         source="usda", source_id="123", name="Chicken breast",
         calories_100g=165.0, protein_100g=31.0, carbs_100g=0.0, fat_100g=3.6,
-        serving_desc="100g", serving_grams=100.0, cached_at=datetime.utcnow(),
+        serving_desc="100g", serving_grams=100.0, cached_at=datetime.now(timezone.utc),
     )
     db.add(food)
     db.commit()
 
     log = Log(food_id=food.id, date=date(2026, 7, 24),
-              meal_type="lunch", amount_g=200.0, created_at=datetime.utcnow())
+              meal_type="lunch", amount_g=200.0, created_at=datetime.now(timezone.utc))
     fav = Favorite(food_id=food.id, label="my chicken")
     db.add_all([log, fav])
     db.commit()
@@ -41,7 +41,7 @@ def test_duplicate_source_and_source_id_rejected():
     food1 = Food(
         source="usda", source_id="123", name="Chicken breast",
         calories_100g=165.0, protein_100g=31.0, carbs_100g=0.0, fat_100g=3.6,
-        cached_at=datetime.utcnow(),
+        cached_at=datetime.now(timezone.utc),
     )
     db.add(food1)
     db.commit()
@@ -49,7 +49,7 @@ def test_duplicate_source_and_source_id_rejected():
     food2 = Food(
         source="usda", source_id="123", name="Different name",
         calories_100g=100.0, protein_100g=20.0, carbs_100g=5.0, fat_100g=2.0,
-        cached_at=datetime.utcnow(),
+        cached_at=datetime.now(timezone.utc),
     )
     db.add(food2)
     with pytest.raises(IntegrityError):
@@ -62,7 +62,7 @@ def test_duplicate_favorite_food_id_rejected():
     food = Food(
         source="usda", source_id="456", name="Salmon",
         calories_100g=208.0, protein_100g=20.0, carbs_100g=0.0, fat_100g=13.0,
-        cached_at=datetime.utcnow(),
+        cached_at=datetime.now(timezone.utc),
     )
     db.add(food)
     db.commit()
