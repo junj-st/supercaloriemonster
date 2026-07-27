@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f4efe2" />
+  <meta name="color-scheme" content="dark light" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="stylesheet" href="/static/style.css?v=nb1" />
+  <title>supercaloriemonster</title>
+</head>
+<body>
+  <header>
+    <h1>scm</h1>
+    <nav>
+      <button data-view="today" class="active">Today</button>
+      <button data-view="search">Add</button>
+      <button data-view="history">History</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="view-today" class="view">
+      <div class="section-label">Today</div>
+      <div id="totals"></div>
+      <div id="day-meals"></div>
+    </section>
+
+    <section id="view-search" class="view hidden">
+      <input id="search-box" type="search" placeholder="Search foods…" autocomplete="off" />
+      <div id="search-results"></div>
+      <div id="quick-lists"></div>
+    </section>
+
+    <section id="view-history" class="view hidden">
+      <input id="history-date" type="date" />
+      <div class="totals" id="history-totals"></div>
+      <div id="history-meals"></div>
+    </section>
+  </main>
+
+  <div id="log-dialog" class="hidden">
+    <div class="dialog-card">
+      <h3 id="log-food-name"></h3>
+      <label>Meal
+        <select id="log-meal">
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snack">Snack</option>
+        </select>
+      </label>
+      <label>Servings <input id="log-servings" type="number" min="0" step="0.1" /></label>
+      <label>Amount (g) <input id="log-grams" type="number" min="0" step="1" value="100" /></label>
+      <div id="serving-hint" class="hint"></div>
+      <div class="dialog-actions">
+        <button id="log-cancel">Cancel</button>
+        <button id="log-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=nb1"></script>
+</body>
+</html>
