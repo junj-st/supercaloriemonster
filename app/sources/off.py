@@ -15,7 +15,12 @@ class OFFFoodSource:
     ) -> list[NormalizedFood]:
         resp = await client.get(
             f"{self.base_url}/cgi/search.pl",
-            params={"search_terms": query, "json": 1, "page_size": 20},
+            params={
+                "search_terms": query,
+                "json": 1,
+                "page_size": 20,
+                "fields": "code,product_name,brands,serving_quantity,serving_size,nutriments,nova_group",
+            },
         )
         resp.raise_for_status()
         products = resp.json().get("products", [])
