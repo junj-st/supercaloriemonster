@@ -2,6 +2,7 @@
   "foods": [
     {
       "fdcId": 171077,
+      "dataType": "SR Legacy",
       "description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
       "brandOwner": null,
       "foodNutrients": [
@@ -13,6 +14,7 @@
     },
     {
       "fdcId": 999999,
+      "dataType": "SR Legacy",
       "description": "Mystery food with no energy",
       "foodNutrients": [
         {"nutrientId": 1003, "nutrientNumber": "203", "nutrientName": "Protein", "unitName": "G", "value": 5.0}
@@ -20,6 +22,8 @@
     },
     {
       "fdcId": 171078,
+      "dataType": "Branded",
+      "brandOwner": "Acme Foods",
       "description": "Energy only, missing macros",
       "foodNutrients": [
         {"nutrientId": 1008, "nutrientNumber": "208", "nutrientName": "Energy", "unitName": "KCAL", "value": 200.0}

@@ -6,6 +6,35 @@ _USDA_PROTEIN = 1003
 _USDA_CARBS = 1005
 _USDA_FAT = 1004
 
+_USDA_GENERIC_TYPES = {"Foundation", "SR Legacy", "Survey (FNDDS)"}
+_OFF_NOVA_SCORE = {1: 1.0, 2: 0.7, 3: 0.4, 4: 0.1}
+
+
+def _usda_generic_score(item: dict) -> float:
+    dt = item.get("dataType")
+    if dt in _USDA_GENERIC_TYPES:
+        base = 1.0
+    elif dt == "Branded":
+        base = 0.2
+    else:
+        base = 0.5
+    if not (item.get("brandOwner") or item.get("brandName")):
+        base = min(1.0, base + 0.05)
+    return base
+
+
+def _off_generic_score(product: dict) -> float:
+    nova = product.get("nova_group")
+    base = 0.5
+    if nova is not None:
+        try:
+            base = _OFF_NOVA_SCORE.get(int(nova), 0.5)
+        except (TypeError, ValueError):
+            base = 0.5
+    if not (product.get("brands") or "").strip():
+        base = min(1.0, base + 0.05)
+    return base
+
 
 def _usda_nutrients(item: dict) -> dict[int, float]:
     out: dict[int, float] = {}
@@ -33,6 +62,7 @@ def normalize_usda(item: dict) -> NormalizedFood | None:
         fat_100g=nut.get(_USDA_FAT, 0.0),
         serving_desc="100g",
         serving_grams=100.0,
+        generic_score=_usda_generic_score(item),
     )
 
 
@@ -54,4 +84,5 @@ def normalize_off(product: dict) -> NormalizedFood | None:
         fat_100g=float(nut.get("fat_100g", 0.0)),
         serving_desc=(product.get("serving_size") or None),
         serving_grams=float(serving_grams) if serving_grams is not None else None,
+        generic_score=_off_generic_score(product),
     )
