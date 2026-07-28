@@ -1,11 +1,12 @@
 import math
+import re
 
 from app.schemas import NormalizedFood
 
 
 def query_weights(query: str) -> tuple[float, float]:
     """(w_generic, w_relevance). Broad (1 token) favors genericness."""
-    if len(query.split()) <= 1:
+    if len((query or "").split()) <= 1:
         return (0.6, 0.4)
     return (0.2, 0.8)
 
@@ -20,8 +21,8 @@ def relevance(query: str, name: str, position: int) -> float:
     elif nm.startswith(q):
         base = 0.85
     else:
-        q_tokens = q.split()
-        n_tokens = set(nm.split())
+        q_tokens = re.findall(r"[a-z0-9]+", q)
+        n_tokens = set(re.findall(r"[a-z0-9]+", nm))
         if q_tokens and all(t in n_tokens for t in q_tokens):
             base = 0.7
         elif q_tokens:

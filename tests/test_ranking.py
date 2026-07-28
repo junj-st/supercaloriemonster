@@ -18,8 +18,19 @@ def test_query_weights_broad_vs_specific():
 def test_relevance_tiers():
     assert ranking.relevance("rice", "rice", 0) > ranking.relevance("rice", "rice pilaf", 0)
     assert ranking.relevance("rice", "rice pilaf", 0) > ranking.relevance("rice", "wild rice blend", 0)
-    # earlier position ranks at least as high as a later one, all else equal
-    assert ranking.relevance("rice", "rice", 0) >= ranking.relevance("rice", "rice", 5)
+    # earlier position ranks strictly higher than a later one, all else equal
+    assert ranking.relevance("white", "Rice, white, cooked", 0) > ranking.relevance("white", "Rice, white, cooked", 5)
+
+
+def test_query_weights_none_safe():
+    result = ranking.query_weights(None)
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    assert result == (0.6, 0.4)
+
+
+def test_relevance_matches_punctuated_name():
+    assert ranking.relevance("white", "Rice, white, cooked", 0) >= 0.7
 
 
 def test_broad_query_prefers_generic():
