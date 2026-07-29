@@ -1,8 +1,11 @@
+from datetime import date, datetime, timezone
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.crud import compute_macros, to_normalized, upsert_food
+from app.crud import compute_macros, log_history, to_normalized, upsert_food
 from app.db import Base
+from app.models import Log
 from app.schemas import NormalizedFood
 
 
@@ -100,3 +103,15 @@ def test_to_normalized_maps_all_fields():
     assert normalized.fat_100g == 4.1
     assert normalized.serving_desc == "1 cup"
     assert normalized.serving_grams == 250
+
+
+def test_log_history_counts_by_food():
+    db = _session()
+    food = upsert_food(db, _food())  # source="usda", source_id="1", name="Rice"
+    for _ in range(2):
+        db.add(Log(food_id=food.id, date=date(2026, 7, 28), meal_type="lunch",
+                   amount_g=100, created_at=datetime.now(timezone.utc)))
+    db.commit()
+    hist = log_history(db)
+    assert hist[("id", "usda", "1")] == 2
+    assert hist[("name", "rice")] == 2

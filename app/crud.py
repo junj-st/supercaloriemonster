@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Food
+from app.models import Food, Log
 from app.schemas import NormalizedFood, Totals
 
 
@@ -48,6 +48,21 @@ def compute_macros(food: Food, amount_g: float) -> Totals:
         carbs_g=round(food.carbs_100g * factor, 1),
         fat_g=round(food.fat_100g * factor, 1),
     )
+
+
+def log_history(db: Session) -> dict:
+    rows = db.execute(
+        select(Food.source, Food.source_id, Food.name, func.count(Log.id))
+        .join(Log, Log.food_id == Food.id)
+        .group_by(Food.id)
+    ).all()
+    hist: dict = {}
+    for source, source_id, name, count in rows:
+        if source_id is not None:
+            hist[("id", source, source_id)] = count
+        key = ("name", (name or "").lower())
+        hist[key] = hist.get(key, 0) + count
+    return hist
 
 
 def to_normalized(food: Food) -> NormalizedFood:
