@@ -4,7 +4,7 @@ import logging
 import httpx
 
 from app.schemas import NormalizedFood, SearchResult
-from app.sources import ranking
+from app.sources import ranking, staples
 from app.sources.base import FoodSource
 
 logger = logging.getLogger("scm.search")
@@ -42,4 +42,7 @@ async def search_foods(
             scored.append((ranking.score(food, query, position, history), food))
     scored.sort(key=lambda pair: pair[0], reverse=True)
     merged = [food for _, food in scored]
+    staple = staples.staple_for(query)
+    if staple is not None:
+        merged = [staple] + merged   # staple leads; _dedupe drops same-named source hits
     return SearchResult(results=_dedupe(merged), partial=partial)
