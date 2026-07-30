@@ -53,3 +53,13 @@ def test_history_boost_raises_score():
     food = _food("Brown rice", source="usda", sid="9", generic=0.5)
     history = {("id", "usda", "9"): 3}
     assert ranking.score(food, "rice", 0, history) > ranking.score(food, "rice", 0, {})
+
+
+def test_history_boost_name_fallback_any_source():
+    # (source, source_id) not in history, but exact lowercased name matches a
+    # logged food's name → boosted (fallback applies to all sources, not just manual).
+    food = _food("Brown rice", source="off", sid="not-logged", generic=0.5)
+    history = {("name", "brown rice"): 2}
+    assert ranking.history_boost(food, history) > 0.0
+    # a different name gets no boost
+    assert ranking.history_boost(_food("Quinoa", source="off", sid="x"), history) == 0.0

@@ -41,7 +41,7 @@ normalization time (the raw source dict is available there):
 - Name match tier: exact match (name == query) > name starts with query > all query tokens present in name > partial token overlap. Higher tier → higher base relevance.
 - Source position: sources already return results in their own relevance order; earlier position contributes a small positive term (decaying with rank).
 
-**`history_boost` (additive, ≥ 0)** — from the user's `logs`: if a candidate matches a food the user has logged (by `(source, source_id)`, or by lowercased name for manual foods), add a boost that grows with log count and saturates (so one heavily-logged food can't dominate unrelated queries).
+**`history_boost` (additive, ≥ 0)** — from the user's `logs`: if a candidate matches a food the user has logged, add a boost that grows with log count and saturates (so one heavily-logged food can't dominate unrelated queries). Matching is by `(source, source_id)` first; if that misses, it falls back to an **exact lowercased-name** match against any logged food (not only manual foods). The name fallback is intentional: an exact same-name match is effectively the same food across sources/IDs, so it should inherit the history boost. Because the fallback requires the full name to match exactly, its blast radius is narrow.
 
 ### Query-breadth weighting
 
