@@ -36,12 +36,12 @@ async def test_partial_flag_when_source_fails():
 
 
 async def test_broad_query_ranks_generic_first():
-    usda = _FakeSource("usda", [_food("Rice snack bar", generic=0.1)])
-    off = _FakeSource("off", [_food("Rice, white, cooked", source="off", generic=1.0)])
+    usda = _FakeSource("usda", [_food("Whole grain, cooked", generic=1.0)])
+    off = _FakeSource("off", [_food("Grain snack bar", source="off", generic=0.1)])
     async with httpx.AsyncClient() as client:
-        res = await search_foods("rice bowl", [usda, off], client)
+        res = await search_foods("grain", [usda, off], client)
     assert res.partial is False
-    assert res.results[0].name == "Rice, white, cooked"
+    assert res.results[0].name == "Whole grain, cooked"
 
 
 async def test_specific_query_ranks_relevance_first():
@@ -53,21 +53,21 @@ async def test_specific_query_ranks_relevance_first():
 
 
 async def test_history_boost_reorders():
-    a = _food("White rice", sid="1", generic=0.5)
-    b = _food("Brown rice", sid="2", generic=0.5)
+    a = _food("White grain", sid="1", generic=0.5)
+    b = _food("Brown grain", sid="2", generic=0.5)
     src = _FakeSource("usda", [a, b])
     history = {("id", "usda", "2"): 4}
     async with httpx.AsyncClient() as client:
-        res = await search_foods("rice bowl", [src], client, history)
-    assert res.results[0].name == "Brown rice"
+        res = await search_foods("grain", [src], client, history)
+    assert res.results[0].name == "Brown grain"
 
 
 async def test_dedupe_keeps_highest_scored():
-    low = _food("Milk", sid="1", generic=0.1)
-    high = _food("milk", sid="2", generic=1.0)   # same name/brand key, higher generic
+    low = _food("Grain", sid="1", generic=0.1)
+    high = _food("grain", sid="2", generic=1.0)   # same name/brand key, higher generic
     src = _FakeSource("usda", [low, high])
     async with httpx.AsyncClient() as client:
-        res = await search_foods("milk shake", [src], client)
+        res = await search_foods("grain", [src], client)
     assert len(res.results) == 1
     assert res.results[0].generic_score == 1.0
 
