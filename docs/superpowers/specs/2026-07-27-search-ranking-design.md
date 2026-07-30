@@ -33,7 +33,7 @@ deduped (keeping the highest-scored duplicate).
 **`generic_score` (0–1)** — how much a food is a basic whole food. Computed at
 normalization time (the raw source dict is available there):
 
-- **USDA** — from `dataType`: `Foundation` / `SR Legacy` / `Survey (FNDDS)` → high (~1.0); `Branded` → low (~0.2). A small bonus when `brand` is absent. Unknown `dataType` → neutral (~0.5).
+- **USDA** — from `dataType`: `Foundation` / `SR Legacy` (basic reference foods) → high (~1.0); `Survey (FNDDS)` (prepared dietary-recall dishes) → mid (~0.6, below reference foods — see the granularity note in the Addendum); `Branded` → low (~0.2). A small bonus when `brand` is absent. Unknown `dataType` → neutral (~0.5).
 - **Open Food Facts** — from `nova_group`: 1 → ~1.0, 2 → ~0.7, 3 → ~0.4, 4 → ~0.1. A small bonus when there is no brand. Missing NOVA → neutral (~0.5).
 - Stored as one derived field on `NormalizedFood`; raw `dataType` / `nova_group` do not propagate further.
 
@@ -153,3 +153,14 @@ locally.
 - `tests/test_staples.py` — `staple_for` returns the right staple for trigger terms, `None` for non-triggers and multi-word specific queries; every seed entry is a valid `NormalizedFood` with `source="usda"`, a non-empty `fdcId`, positive calories, and `generic_score == 1.0`.
 - `tests/test_search.py` — a query matching a staple trigger places that staple first even when the fake sources return only branded/unrelated results; a non-trigger query is unaffected; a source result for the same food is de-duplicated (staple wins its slot, no duplicate row).
 
+
+### Genericness granularity (shipped with the addendum)
+
+Alongside the curated staples, `_usda_generic_score` was refined so basic
+reference foods outrank prepared dietary-recall dishes: **Foundation / SR Legacy
+→ 1.0**, **Survey (FNDDS) → 0.6**, **Branded → 0.2**, unknown → 0.5 (the +0.05
+no-brand bonus still applies). This helps the long tail of queries that have no
+curated staple — e.g. "lentils" ranks "Lentils, cooked" (SR Legacy) above
+"Lentil soup" (FNDDS). Note: staples are injected unconditionally (not scored),
+so their `generic_score=1.0` is not consulted during injection; it is set for
+consistency and in case injection ever becomes score-based.
