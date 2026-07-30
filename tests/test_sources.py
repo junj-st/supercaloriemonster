@@ -44,3 +44,16 @@ async def test_usda_search_parses_results():
 def test_usda_disabled_without_key():
     src = USDAFoodSource(base_url="https://usda.test", api_key=None)
     assert src.enabled is False
+
+
+async def test_off_search_requests_nova_group():
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        return httpx.Response(200, json={"products": []})
+
+    src = OFFFoodSource(base_url="https://off.test")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        await src.search("rice", client)
+    assert "nova_group" in captured["url"]

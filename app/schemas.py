@@ -17,6 +17,7 @@ class NormalizedFood(BaseModel):
     fat_100g: float
     serving_desc: str | None = None
     serving_grams: float | None = None
+    generic_score: float = 0.0
 
 
 class SearchResult(BaseModel):

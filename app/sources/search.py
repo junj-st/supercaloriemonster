@@ -4,14 +4,10 @@ import logging
 import httpx
 
 from app.schemas import NormalizedFood, SearchResult
+from app.sources import ranking, staples
 from app.sources.base import FoodSource
 
 logger = logging.getLogger("scm.search")
-
-
-def _rank_key(food: NormalizedFood) -> tuple[int, str]:
-    # Generic (no brand) ranks before branded; stable by name within each group.
-    return (1 if food.brand else 0, food.name.lower())
 
 
 def _dedupe(foods: list[NormalizedFood]) -> list[NormalizedFood]:
@@ -26,18 +22,27 @@ def _dedupe(foods: list[NormalizedFood]) -> list[NormalizedFood]:
 
 
 async def search_foods(
-    query: str, sources: list[FoodSource], client: httpx.AsyncClient
+    query: str,
+    sources: list[FoodSource],
+    client: httpx.AsyncClient,
+    history: dict | None = None,
 ) -> SearchResult:
+    history = history or {}
     results = await asyncio.gather(
         *(s.search(query, client) for s in sources), return_exceptions=True
     )
-    merged: list[NormalizedFood] = []
+    scored: list[tuple[float, NormalizedFood]] = []
     partial = False
     for source, res in zip(sources, results):
         if isinstance(res, Exception):
             partial = True
             logger.warning("source %s failed: %s", source.name, res)
             continue
-        merged.extend(res)
-    merged.sort(key=_rank_key)
+        for position, food in enumerate(res):
+            scored.append((ranking.score(food, query, position, history), food))
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    merged = [food for _, food in scored]
+    staple = staples.staple_for(query)
+    if staple is not None:
+        merged = [staple] + merged   # staple leads; _dedupe drops same-named source hits
     return SearchResult(results=_dedupe(merged), partial=partial)

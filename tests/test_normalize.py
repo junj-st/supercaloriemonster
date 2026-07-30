@@ -65,3 +65,28 @@ def test_normalize_off_missing_macros_default_zero():
     assert f.protein_100g == 0.0
     assert f.carbs_100g == 0.0
     assert f.fat_100g == 0.0
+
+
+def test_normalize_usda_generic_score_from_datatype():
+    item = _load("usda_search.json")["foods"][0]   # SR Legacy, no brand
+    assert normalize_usda(item).generic_score == 1.0
+    branded = _load("usda_search.json")["foods"][2]  # Branded (energy-only)
+    assert normalize_usda(branded).generic_score == 0.2
+
+
+def test_normalize_off_generic_score_from_nova():
+    prod = _load("off_search.json")["products"][0]   # Nutella, nova 4, brand Ferrero
+    assert normalize_off(prod).generic_score == 0.1
+    energy_only = _load("off_search.json")["products"][2]  # no nova, no brand
+    assert normalize_off(energy_only).generic_score == 0.55
+
+
+def test_normalize_usda_fndds_below_reference():
+    fndds = {"fdcId": 5, "dataType": "Survey (FNDDS)", "description": "Rice pilaf",
+             "foodNutrients": [{"nutrientId": 1008, "value": 150.0}]}
+    ref = {"fdcId": 6, "dataType": "SR Legacy", "description": "Lentils, cooked",
+           "foodNutrients": [{"nutrientId": 1008, "value": 116.0}]}
+    fndds_score = normalize_usda(fndds).generic_score
+    ref_score = normalize_usda(ref).generic_score
+    assert 0.5 < fndds_score < ref_score        # generic but below reference
+    assert ref_score == 1.0

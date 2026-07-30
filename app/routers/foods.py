@@ -4,6 +4,7 @@ import httpx
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app import crud
 from app.config import Settings, get_settings
 from app.crud import to_normalized, upsert_food
 from app.db import get_db
@@ -33,14 +34,16 @@ async def search(
     q: str = "",
     sources: list[FoodSource] = Depends(get_sources),
     settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db),
 ) -> SearchResult:
     if not q.strip():
         return SearchResult(results=[], partial=False)
+    history = crud.log_history(db)
     async with httpx.AsyncClient(
         timeout=settings.http_timeout,
         headers={"User-Agent": "supercaloriemonster/1.0 (https://github.com/junj-st/supercaloriemonster)"},
     ) as client:
-        return await search_foods(q.strip(), sources, client)
+        return await search_foods(q.strip(), sources, client, history)
 
 
 @router.post("/manual", response_model=NormalizedFood, status_code=201)

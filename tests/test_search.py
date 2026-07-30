@@ -1,6 +1,7 @@
 import httpx
 
 from app.schemas import NormalizedFood
+from app.sources import staples
 from app.sources.search import search_foods
 
 
@@ -19,34 +20,79 @@ class _FakeSource:
         return None
 
 
-def _food(name, brand=None, source="usda"):
-    return NormalizedFood(source=source, source_id=name, name=name, brand=brand,
-                          calories_100g=100, protein_100g=1, carbs_100g=1, fat_100g=1)
+def _food(name, brand=None, source="usda", sid=None, generic=0.5):
+    return NormalizedFood(source=source, source_id=sid or name, name=name, brand=brand,
+                          calories_100g=100, protein_100g=1, carbs_100g=1, fat_100g=1,
+                          generic_score=generic)
 
 
-async def test_merge_dedupes_and_flags_partial():
-    usda = _FakeSource("usda", [_food("Rice")])
+async def test_partial_flag_when_source_fails():
+    usda = _FakeSource("usda", [_food("Rice", generic=1.0)])
     off = _FakeSource("off", boom=True)
     async with httpx.AsyncClient() as client:
-        res = await search_foods("rice", [usda, off], client)
+        res = await search_foods("rice bowl", [usda, off], client)
     assert res.partial is True
     assert [f.name for f in res.results] == ["Rice"]
 
 
-async def test_generic_ranks_before_branded():
-    usda = _FakeSource("usda", [_food("Chicken breast")])
-    off = _FakeSource("off", [_food("Chicken nuggets", brand="Acme", source="off")])
+async def test_broad_query_ranks_generic_first():
+    usda = _FakeSource("usda", [_food("Whole grain, cooked", generic=1.0)])
+    off = _FakeSource("off", [_food("Grain snack bar", source="off", generic=0.1)])
     async with httpx.AsyncClient() as client:
-        res = await search_foods("chicken", [usda, off], client)
+        res = await search_foods("grain", [usda, off], client)
     assert res.partial is False
-    assert res.results[0].name == "Chicken breast"  # generic first
-    assert res.results[1].brand == "Acme"
+    assert res.results[0].name == "Whole grain, cooked"
 
 
-async def test_dedupe_same_name_and_brand():
-    a = _food("Milk")
-    b = _food("milk")  # same name, different case, no brand
-    src = _FakeSource("usda", [a, b])
+async def test_specific_query_ranks_relevance_first():
+    generic = _FakeSource("usda", [_food("Rice, white, cooked", generic=1.0)])
+    specific = _FakeSource("off", [_food("Basmati rice pilaf", source="off", generic=0.2)])
     async with httpx.AsyncClient() as client:
-        res = await search_foods("milk", [src], client)
+        res = await search_foods("basmati rice pilaf", [generic, specific], client)
+    assert res.results[0].name == "Basmati rice pilaf"
+
+
+async def test_history_boost_reorders():
+    a = _food("White grain", sid="1", generic=0.5)
+    b = _food("Brown grain", sid="2", generic=0.5)
+    src = _FakeSource("usda", [a, b])
+    history = {("id", "usda", "2"): 4}
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("grain", [src], client, history)
+    assert res.results[0].name == "Brown grain"
+
+
+async def test_dedupe_keeps_highest_scored():
+    low = _food("Grain", sid="1", generic=0.1)
+    high = _food("grain", sid="2", generic=1.0)   # same name/brand key, higher generic
+    src = _FakeSource("usda", [low, high])
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("grain", [src], client)
     assert len(res.results) == 1
+    assert res.results[0].generic_score == 1.0
+
+
+async def test_staple_injected_first_for_trigger_query():
+    branded = _food("Rice snack bar", source="off", sid="b1", generic=0.1)
+    src = _FakeSource("off", [branded])
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("rice", [src], client)
+    assert res.results[0].name == staples.staple_for("rice").name
+
+
+async def test_no_staple_for_non_trigger_query():
+    branded = _food("Rice snack bar", source="off", sid="b1", generic=0.1)
+    src = _FakeSource("off", [branded])
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("wild rice blend", [src], client)
+    assert res.results[0].name == "Rice snack bar"   # composite only, no staple
+
+
+async def test_staple_dedupes_same_named_source_result():
+    staple = staples.staple_for("rice")
+    dup = _food(staple.name, source="off", sid="dup", generic=0.1)   # same name as staple
+    src = _FakeSource("off", [dup])
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("rice", [src], client)
+    assert sum(1 for r in res.results if r.name == staple.name) == 1  # no duplicate
+    assert res.results[0].source_id == staple.source_id              # staple won the slot
