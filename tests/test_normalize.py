@@ -79,3 +79,14 @@ def test_normalize_off_generic_score_from_nova():
     assert normalize_off(prod).generic_score == 0.1
     energy_only = _load("off_search.json")["products"][2]  # no nova, no brand
     assert normalize_off(energy_only).generic_score == 0.55
+
+
+def test_normalize_usda_fndds_below_reference():
+    fndds = {"fdcId": 5, "dataType": "Survey (FNDDS)", "description": "Rice pilaf",
+             "foodNutrients": [{"nutrientId": 1008, "value": 150.0}]}
+    ref = {"fdcId": 6, "dataType": "SR Legacy", "description": "Lentils, cooked",
+           "foodNutrients": [{"nutrientId": 1008, "value": 116.0}]}
+    fndds_score = normalize_usda(fndds).generic_score
+    ref_score = normalize_usda(ref).generic_score
+    assert 0.5 < fndds_score < ref_score        # generic but below reference
+    assert ref_score == 1.0

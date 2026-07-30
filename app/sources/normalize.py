@@ -6,14 +6,16 @@ _USDA_PROTEIN = 1003
 _USDA_CARBS = 1005
 _USDA_FAT = 1004
 
-_USDA_GENERIC_TYPES = {"Foundation", "SR Legacy", "Survey (FNDDS)"}
+_USDA_REFERENCE_TYPES = {"Foundation", "SR Legacy"}
 _OFF_NOVA_SCORE = {1: 1.0, 2: 0.7, 3: 0.4, 4: 0.1}
 
 
 def _usda_generic_score(item: dict) -> float:
     dt = item.get("dataType")
-    if dt in _USDA_GENERIC_TYPES:
+    if dt in _USDA_REFERENCE_TYPES:
         base = 1.0
+    elif dt == "Survey (FNDDS)":
+        base = 0.6
     elif dt == "Branded":
         base = 0.2
     else:
