@@ -119,6 +119,37 @@ GET /foods/search?q=...
 ## Out of scope
 
 - Scan-count / real-world popularity ranking (explicitly rejected in favor of genericness).
-- Curated staples lists.
 - Cross-user/global popularity, learning-to-rank, or persisted ranking scores.
 - Any change to logging, favorites, or the food schema.
+
+## Addendum — curated staples booster (added after smoke-testing)
+
+**Discovery:** During live smoke-testing, the composite ranking correctly ranks
+generic foods above branded ones, but did NOT achieve the flagship goal
+("rice" → classic white rice first). Verified against the live USDA API: for the
+bare term "rice", USDA's own relevance returns branded "RICE" and FNDDS prepared
+dishes ("Dirty rice", "Rice pilaf", "Rice crackers") first, and the basic
+SR Legacy "Rice, white, … cooked" is **not in the top 50 of 141** results even
+when filtered to `dataType=Foundation,SR Legacy`. Because the staple is never in
+the candidate window, no reranking or `dataType` biasing can surface it — this is
+a retrieval limitation of USDA's free search, not a ranking bug.
+
+**Decision:** Add a small **curated staples layer** that *supplies* the canonical
+staple for common one-word foods (the composite ranking remains the primary
+mechanism for everything else). This is a targeted booster, not a replacement.
+
+**Design:**
+- A local seed module `app/sources/staples.py` holds ~25–30 common foods. Each entry has: `triggers` (exact query terms that surface it, e.g. `["rice", "white rice"]`), and a canonical `NormalizedFood` with real per-100g nutrition, `source="usda"` + the real `fdcId`, `generic_score=1.0`. Seed nutrition/`fdcId` values are fetched once from the live USDA API at implementation time and baked in as static data (so runtime stays offline and reliable); each entry cites its source `fdcId`.
+- `staple_for(query: str) -> NormalizedFood | None` returns the staple whose `triggers` exactly contain the normalized (lowercased, stripped) query. Multi-word/specific queries that don't match a trigger return `None` and fall through to the composite.
+- In `search_foods`: after the composite sort + dedupe, if `staple_for(query)` returns a staple, it is placed **first**, de-duplicated against any source result for the same `(name.lower(), brand.lower())` so it replaces rather than duplicates a matching source hit.
+- `source="staple"` is NOT used — staples reuse `source="usda"` with the real `fdcId`, so logging/upsert/dedupe behave identically to any USDA food.
+
+**Rationale for local seed over live targeted fetch:** reliability and offline
+support (PWA ethos), no extra API call per search, and immunity to USDA's
+relevance burying the staple. Trade-off: ~30 stable nutrition values maintained
+locally.
+
+**Testing (addendum):**
+- `tests/test_staples.py` — `staple_for` returns the right staple for trigger terms, `None` for non-triggers and multi-word specific queries; every seed entry is a valid `NormalizedFood` with `source="usda"`, a non-empty `fdcId`, positive calories, and `generic_score == 1.0`.
+- `tests/test_search.py` — a query matching a staple trigger places that staple first even when the fake sources return only branded/unrelated results; a non-trigger query is unaffected; a source result for the same food is de-duplicated (staple wins its slot, no duplicate row).
+

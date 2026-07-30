@@ -722,3 +722,213 @@ git commit -m "feat: boost search results by personal logging history"
 **Placeholder scan:** no TBD/TODO; every code step is complete. The tunable weight constants are concrete values in `ranking.py`, and tests assert ordering, not the constants (per Global Constraints). ✓
 
 **Type consistency:** `generic_score: float` is set by both normalizers and read by `ranking.score`; the history key scheme `("id", source, source_id)` / `("name", name.lower())` is produced by `log_history` and consumed by `history_boost` identically; `search_foods(query, sources, client, history=None)` signature matches the endpoint call in Task 6. ✓
+
+---
+
+## Addendum tasks (curated staples booster)
+
+Added after smoke-testing revealed USDA cannot surface basic staples for broad
+terms (see spec addendum). These build on the completed Tasks 1–6.
+
+### Task 7: Curated staples seed module
+
+**Files:**
+- Create: `app/sources/staples.py`
+- Test: `tests/test_staples.py`
+
+**Interfaces:**
+- Consumes: `app.schemas.NormalizedFood`.
+- Produces: `staple_for(query: str) -> NormalizedFood | None` — returns the seeded staple whose trigger terms exactly contain the normalized (lowercased, stripped) query; else `None`. A private `_STAPLES` list holds ~25 entries.
+
+Each staple is a `NormalizedFood` with `source="usda"`, the real `fdcId` as `source_id`, `brand=None`, real per-100g macros, a sensible `serving_desc`/`serving_grams`, and `generic_score=1.0`.
+
+**Seeding the data (do this at implementation time):** the USDA API key is in `.env` (`USDA_API_KEY`). For each staple below, query the live API restricted to generic types and read the plainest matching entry's `fdcId` and per-100g nutrients, then bake those numbers into the module as static data. Example lookup:
+`curl -s "https://api.nal.usda.gov/fdc/v1/foods/search?api_key=$KEY&query=<TARGET>&dataType=SR%20Legacy,Foundation&pageSize=5"` then read `foods[i].fdcId` and the `foodNutrients` where `nutrientId` is 1008/1003/1005/1004 (energy/protein/carbs/fat, already per 100g). Pick the plainest cooked/whole form. Add a comment on each entry noting its `fdcId` and target.
+
+Staples to seed (trigger terms → target food; pick the plainest form):
+- `["rice", "white rice"]` → white rice, cooked
+- `["brown rice"]` → brown rice, cooked
+- `["chicken", "chicken breast"]` → chicken breast, cooked, roasted
+- `["egg", "eggs"]` → egg, whole, cooked (or raw)
+- `["banana", "bananas"]` → banana, raw
+- `["apple", "apples"]` → apple, raw, with skin
+- `["milk"]` → milk, whole
+- `["oatmeal", "oats"]` → oatmeal / oats, cooked
+- `["bread"]` → bread, white, commercially prepared
+- `["pasta"]` → pasta, cooked
+- `["potato", "potatoes"]` → potato, baked, flesh
+- `["sweet potato"]` → sweet potato, cooked, baked
+- `["broccoli"]` → broccoli, cooked
+- `["salmon"]` → salmon, cooked
+- `["ground beef", "beef"]` → ground beef, cooked (85/15)
+- `["black beans", "beans"]` → black beans, cooked
+- `["almonds"]` → almonds
+- `["peanut butter"]` → peanut butter
+- `["greek yogurt", "yogurt"]` → greek yogurt, plain, nonfat
+- `["avocado", "avocados"]` → avocado, raw
+- `["olive oil"]` → olive oil
+- `["cheddar", "cheddar cheese"]` → cheddar cheese
+- `["tofu"]` → tofu, firm
+- `["quinoa"]` → quinoa, cooked
+- `["spinach"]` → spinach, raw
+- `["carrot", "carrots"]` → carrots, raw
+- `["orange", "oranges"]` → orange, raw
+
+- [ ] **Step 1: Write the failing test `tests/test_staples.py`**
+
+```python
+from app.schemas import NormalizedFood
+from app.sources.staples import _STAPLES, staple_for
+
+
+def test_staple_for_trigger_terms():
+    r = staple_for("rice")
+    assert r is not None
+    assert "rice" in r.name.lower()
+    assert staple_for("Rice") is not None            # case-insensitive
+    assert staple_for("chicken") is not None
+
+
+def test_staple_for_non_triggers():
+    assert staple_for("wild rice blend") is None      # specific, not a trigger
+    assert staple_for("nonexistent food xyz") is None
+    assert staple_for("") is None
+
+
+def test_every_staple_is_valid():
+    assert len(_STAPLES) >= 20
+    for triggers, food in _STAPLES:
+        assert triggers and all(t == t.lower() for t in triggers)
+        assert isinstance(food, NormalizedFood)
+        assert food.source == "usda"
+        assert food.source_id                          # real fdcId, non-empty
+        assert food.calories_100g > 0
+        assert food.generic_score == 1.0
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `pytest tests/test_staples.py -v`
+Expected: FAIL (`No module named 'app.sources.staples'`).
+
+- [ ] **Step 3: Implement `app/sources/staples.py`**
+
+Create `_STAPLES: list[tuple[list[str], NormalizedFood]]` with the seeded entries (real fetched values), and:
+
+```python
+def staple_for(query: str) -> NormalizedFood | None:
+    q = (query or "").strip().lower()
+    if not q:
+        return None
+    for triggers, food in _STAPLES:
+        if q in triggers:
+            return food
+    return None
+```
+
+- [ ] **Step 4: Run the tests**
+
+Run: `pytest tests/test_staples.py -v`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add app/sources/staples.py tests/test_staples.py
+git commit -m "feat: add curated staples seed for common broad-term foods"
+```
+
+---
+
+### Task 8: Inject the matching staple first in `search_foods`
+
+**Files:**
+- Modify: `app/sources/search.py`
+- Test: `tests/test_search.py`
+
+**Interfaces:**
+- Consumes: `staples.staple_for`.
+- Produces: `search_foods` unchanged signature; after the composite sort + dedupe, if `staple_for(query)` returns a staple it is prepended and the list re-deduped so the staple leads and any source result for the same `(name.lower(), brand.lower())` is dropped.
+
+- [ ] **Step 1: Add failing tests to `tests/test_search.py`**
+
+```python
+from app.sources import staples
+
+
+async def test_staple_injected_first_for_trigger_query():
+    branded = _food("Rice snack bar", source="off", sid="b1", generic=0.1)
+    src = _FakeSource("off", [branded])
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("rice", [src], client)
+    assert res.results[0].name == staples.staple_for("rice").name
+
+
+async def test_no_staple_for_non_trigger_query():
+    branded = _food("Rice snack bar", source="off", sid="b1", generic=0.1)
+    src = _FakeSource("off", [branded])
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("wild rice blend", [src], client)
+    assert res.results[0].name == "Rice snack bar"   # composite only, no staple
+
+
+async def test_staple_dedupes_same_named_source_result():
+    staple = staples.staple_for("rice")
+    dup = _food(staple.name, source="off", sid="dup", generic=0.1)   # same name as staple
+    src = _FakeSource("off", [dup])
+    async with httpx.AsyncClient() as client:
+        res = await search_foods("rice", [src], client)
+    assert sum(1 for r in res.results if r.name == staple.name) == 1  # no duplicate
+    assert res.results[0].source_id == staple.source_id              # staple won the slot
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `pytest tests/test_search.py -k staple -v`
+Expected: FAIL (no injection yet).
+
+- [ ] **Step 3: Update `app/sources/search.py`**
+
+Add the import `from app.sources import staples` and, at the end of `search_foods`, inject before returning:
+
+```python
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    merged = [food for _, food in scored]
+    staple = staples.staple_for(query)
+    if staple is not None:
+        merged = [staple] + merged   # staple leads; _dedupe drops same-named source hits
+    return SearchResult(results=_dedupe(merged), partial=partial)
+```
+
+(`_dedupe` keeps first-seen, so the prepended staple wins its `(name, brand)` slot.)
+
+- [ ] **Step 4: Run the tests**
+
+Run: `pytest tests/test_search.py -v`
+Expected: PASS.
+
+- [ ] **Step 5: Run the full suite**
+
+Run: `pytest -q`
+Expected: all pass.
+
+- [ ] **Step 6: Manual smoke test**
+
+Restart the server and check the flagship query:
+`curl -s "http://127.0.0.1:8000/foods/search?q=rice" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['results'][0]['name'])"`
+Expected: the curated white-rice staple is the first result. Also verify a specific query (e.g. `chicken tikka masala`) is unaffected.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add app/sources/search.py tests/test_search.py
+git commit -m "feat: surface curated staple first for broad trigger queries"
+```
+
+## Addendum self-review
+
+- Staple supplies the buried canonical food (retrieval fix) → Task 7. ✓
+- Injection leads + dedupes against source hits → Task 8. ✓
+- Only exact trigger matches inject; specific queries fall through to composite → Task 8 (`staple_for` returns None). ✓
+- Staples reuse `source="usda"` + real fdcId so logging/dedupe are unchanged → Task 7. ✓
+- No schema/endpoint change (injection lives in `search_foods`). ✓
