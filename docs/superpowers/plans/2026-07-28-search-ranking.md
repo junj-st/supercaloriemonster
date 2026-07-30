@@ -932,3 +932,76 @@ git commit -m "feat: surface curated staple first for broad trigger queries"
 - Only exact trigger matches inject; specific queries fall through to composite → Task 8 (`staple_for` returns None). ✓
 - Staples reuse `source="usda"` + real fdcId so logging/dedupe are unchanged → Task 7. ✓
 - No schema/endpoint change (injection lives in `search_foods`). ✓
+
+---
+
+### Task 9: Genericness granularity — reference foods above FNDDS dishes
+
+**Files:**
+- Modify: `app/sources/normalize.py`
+- Test: `tests/test_normalize.py`
+
+**Interfaces:**
+- Consumes: nothing new.
+- Produces: `_usda_generic_score` distinguishes basic reference foods from prepared dietary-recall foods — Foundation / SR Legacy → 1.0, **Survey (FNDDS) → 0.6** (still generic, but below reference), Branded → 0.2, else 0.5; the +0.05 no-brand bonus (capped 1.0) still applies. This ranks e.g. "Lentils, cooked" (SR Legacy) above "Lentil soup" (FNDDS) for queries without a curated staple.
+
+- [ ] **Step 1: Write the failing test in `tests/test_normalize.py`**
+
+```python
+def test_normalize_usda_fndds_below_reference():
+    fndds = {"fdcId": 5, "dataType": "Survey (FNDDS)", "description": "Rice pilaf",
+             "foodNutrients": [{"nutrientId": 1008, "value": 150.0}]}
+    ref = {"fdcId": 6, "dataType": "SR Legacy", "description": "Lentils, cooked",
+           "foodNutrients": [{"nutrientId": 1008, "value": 116.0}]}
+    fndds_score = normalize_usda(fndds).generic_score
+    ref_score = normalize_usda(ref).generic_score
+    assert 0.5 < fndds_score < ref_score        # generic but below reference
+    assert ref_score == 1.0
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `pytest tests/test_normalize.py::test_normalize_usda_fndds_below_reference -v`
+Expected: FAIL (FNDDS currently scores 1.0, equal to reference).
+
+- [ ] **Step 3: Update `_usda_generic_score` in `app/sources/normalize.py`**
+
+Split the reference and FNDDS tiers:
+
+```python
+_USDA_REFERENCE_TYPES = {"Foundation", "SR Legacy"}
+
+
+def _usda_generic_score(item: dict) -> float:
+    dt = item.get("dataType")
+    if dt in _USDA_REFERENCE_TYPES:
+        base = 1.0
+    elif dt == "Survey (FNDDS)":
+        base = 0.6
+    elif dt == "Branded":
+        base = 0.2
+    else:
+        base = 0.5
+    if not (item.get("brandOwner") or item.get("brandName")):
+        base = min(1.0, base + 0.05)
+    return base
+```
+
+(Remove the now-unused `_USDA_GENERIC_TYPES` set if nothing else references it; leave `_OFF_NOVA_SCORE` and `_off_generic_score` unchanged.)
+
+- [ ] **Step 4: Run the tests**
+
+Run: `pytest tests/test_normalize.py -v`
+Expected: PASS (existing generic_score tests — SR Legacy 1.0, Branded 0.2 — still hold; new FNDDS test passes).
+
+- [ ] **Step 5: Run the full suite**
+
+Run: `pytest -q`
+Expected: all pass.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/sources/normalize.py tests/test_normalize.py
+git commit -m "feat: rank USDA reference foods above FNDDS prepared dishes"
+```
