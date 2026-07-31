@@ -67,7 +67,7 @@ class LogUpdate(BaseModel):
 
 class LogEntryOut(BaseModel):
     id: int
-    food_id: int
+    food_id: int | None
     name: str
     brand: str | None
     meal_type: str
