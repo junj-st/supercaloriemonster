@@ -28,13 +28,23 @@ class Log(Base):
     __tablename__ = "logs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"))
+    food_id: Mapped[int | None] = mapped_column(ForeignKey("foods.id"), nullable=True)
     date: Mapped[date] = mapped_column(Date)
     meal_type: Mapped[str] = mapped_column(String)
     amount_g: Mapped[float] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
-    food: Mapped[Food] = relationship()
+    # Macros snapshotted at log time — History is independent of later food edits/deletes.
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    brand: Mapped[str | None] = mapped_column(String, nullable=True)
+    calories_100g: Mapped[float] = mapped_column(Float, default=0.0)
+    protein_100g: Mapped[float] = mapped_column(Float, default=0.0)
+    carbs_100g: Mapped[float] = mapped_column(Float, default=0.0)
+    fat_100g: Mapped[float] = mapped_column(Float, default=0.0)
+    serving_desc: Mapped[str | None] = mapped_column(String, nullable=True)
+    serving_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    food: Mapped["Food"] = relationship()
 
 
 class Favorite(Base):
