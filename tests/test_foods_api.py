@@ -72,3 +72,25 @@ def test_list_manual_foods(client):
     assert len(body) == 1
     assert body[0]["name"] == "Stew"
     assert isinstance(body[0]["id"], int)
+
+
+def test_edit_manual_food(client):
+    created = client.post("/foods/manual", json={
+        "name": "Stew", "calories_100g": 120, "protein_100g": 9,
+        "carbs_100g": 6, "fat_100g": 5,
+    }).json()
+    fid = client.get("/foods/manual").json()[0]["id"]
+
+    resp = client.put(f"/foods/manual/{fid}", json={
+        "name": "Beef stew", "calories_100g": 140, "protein_100g": 11,
+        "carbs_100g": 7, "fat_100g": 6,
+    })
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "Beef stew"
+    assert resp.json()["calories_100g"] == 140
+
+    assert client.put("/foods/manual/9999", json={
+        "name": "X", "calories_100g": 1, "protein_100g": 1,
+        "carbs_100g": 1, "fat_100g": 1,
+    }).status_code == 404
+    _ = created  # created payload unused beyond triggering the row

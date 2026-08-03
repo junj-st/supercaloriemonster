@@ -1,7 +1,7 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -63,3 +63,17 @@ def list_manual(db: Session = Depends(get_db)) -> list[ManualFoodOut]:
     return [ManualFoodOut(**{c: getattr(f, c) for c in (
         "id", "name", "brand", "calories_100g", "protein_100g",
         "carbs_100g", "fat_100g", "serving_desc", "serving_grams")}) for f in foods]
+
+
+@router.put("/manual/{food_id}", response_model=ManualFoodOut)
+def edit_manual(food_id: int, body: ManualFoodIn, db: Session = Depends(get_db)) -> ManualFoodOut:
+    food = db.get(Food, food_id)
+    if food is None or food.source != "manual":
+        raise HTTPException(status_code=404, detail="custom food not found")
+    for field, value in body.model_dump().items():
+        setattr(food, field, value)
+    db.commit()
+    db.refresh(food)
+    return ManualFoodOut(**{c: getattr(food, c) for c in (
+        "id", "name", "brand", "calories_100g", "protein_100g",
+        "carbs_100g", "fat_100g", "serving_desc", "serving_grams")})
