@@ -41,11 +41,12 @@ async def search(
     if not q.strip():
         return SearchResult(results=[], partial=False)
     history = crud.log_history(db)
+    custom = crud.custom_matches(db, q.strip())
     async with httpx.AsyncClient(
         timeout=settings.http_timeout,
         headers={"User-Agent": "supercaloriemonster/1.0 (https://github.com/junj-st/supercaloriemonster)"},
     ) as client:
-        return await search_foods(q.strip(), sources, client, history)
+        return await search_foods(q.strip(), sources, client, history, custom)
 
 
 @router.post("/manual", response_model=NormalizedFood, status_code=201)

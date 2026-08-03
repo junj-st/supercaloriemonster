@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.crud import compute_macros, log_history, to_normalized, upsert_food
+from app.crud import compute_macros, custom_matches, log_history, to_normalized, upsert_food
 from app.db import Base
 from app.models import Log
 from app.schemas import NormalizedFood
@@ -115,3 +115,17 @@ def test_log_history_counts_by_food():
     hist = log_history(db)
     assert hist[("id", "usda", "1")] == 2
     assert hist[("name", "rice")] == 2
+
+
+def test_custom_matches_finds_by_token():
+    db = _session()
+    upsert_food(db, NormalizedFood(
+        source="manual", source_id=None, name="Grandma Beef Stew",
+        calories_100g=120, protein_100g=9, carbs_100g=6, fat_100g=5))
+    upsert_food(db, NormalizedFood(
+        source="usda", source_id="7", name="Beef, ground",
+        calories_100g=250, protein_100g=26, carbs_100g=0, fat_100g=15))
+
+    out = custom_matches(db, "beef bowl")
+    assert [f.name for f in out] == ["Grandma Beef Stew"]  # only the manual row
+    assert custom_matches(db, "salad") == []

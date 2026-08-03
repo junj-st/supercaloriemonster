@@ -96,6 +96,17 @@ def test_edit_manual_food(client):
     _ = created  # created payload unused beyond triggering the row
 
 
+def test_custom_food_leads_search(client, fake_sources):
+    client.post("/foods/manual", json={
+        "name": "Beef stew", "calories_100g": 120, "protein_100g": 9,
+        "carbs_100g": 6, "fat_100g": 5,
+    })
+    fake_sources[0].results = [_food("Beef broth", sid="9")]
+    body = client.get("/foods/search", params={"q": "beef"}).json()
+    assert body["results"][0]["name"] == "Beef stew"
+    assert body["results"][0]["source"] == "manual"
+
+
 def test_delete_manual_preserves_history(client):
     client.post("/logs", json={
         "food": {"source": "manual", "source_id": None, "name": "Stew",
