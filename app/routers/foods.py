@@ -1,15 +1,15 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.config import Settings, get_settings
 from app.crud import to_normalized, upsert_food
 from app.db import get_db
-from app.models import Food
+from app.models import Food, Log
 from app.schemas import ManualFoodIn, ManualFoodOut, NormalizedFood, SearchResult
 from app.sources.base import FoodSource
 from app.sources.off import OFFFoodSource
@@ -77,3 +77,15 @@ def edit_manual(food_id: int, body: ManualFoodIn, db: Session = Depends(get_db))
     return ManualFoodOut(**{c: getattr(food, c) for c in (
         "id", "name", "brand", "calories_100g", "protein_100g",
         "carbs_100g", "fat_100g", "serving_desc", "serving_grams")})
+
+
+@router.delete("/manual/{food_id}", status_code=204)
+def delete_manual(food_id: int, db: Session = Depends(get_db)) -> Response:
+    food = db.get(Food, food_id)
+    if food is None or food.source != "manual":
+        raise HTTPException(status_code=404, detail="custom food not found")
+    # Detach logs so History (which reads its own snapshot) survives the delete.
+    db.execute(update(Log).where(Log.food_id == food_id).values(food_id=None))
+    db.delete(food)
+    db.commit()
+    return Response(status_code=204)

@@ -94,3 +94,22 @@ def test_edit_manual_food(client):
         "carbs_100g": 1, "fat_100g": 1,
     }).status_code == 404
     _ = created  # created payload unused beyond triggering the row
+
+
+def test_delete_manual_preserves_history(client):
+    client.post("/logs", json={
+        "food": {"source": "manual", "source_id": None, "name": "Stew",
+                 "calories_100g": 120, "protein_100g": 9, "carbs_100g": 6,
+                 "fat_100g": 5, "serving_desc": None, "serving_grams": None},
+        "date": "2026-07-28", "meal_type": "lunch", "amount_g": 100,
+    })
+    fid = client.get("/foods/manual").json()[0]["id"]
+
+    assert client.delete(f"/foods/manual/{fid}").status_code == 204
+    # Gone from the list...
+    assert client.get("/foods/manual").json() == []
+    # ...but past History totals are intact (snapshot survives).
+    day = client.get("/logs/day/2026-07-28").json()
+    assert day["totals"]["calories"] == 120.0
+    # Unknown id -> 404.
+    assert client.delete("/foods/manual/9999").status_code == 404
