@@ -36,6 +36,18 @@ class ManualFoodIn(BaseModel):
     serving_grams: float | None = None
 
 
+class ManualFoodOut(BaseModel):
+    id: int
+    name: str
+    brand: str | None = None
+    calories_100g: float
+    protein_100g: float
+    carbs_100g: float
+    fat_100g: float
+    serving_desc: str | None = None
+    serving_grams: float | None = None
+
+
 def _validate_meal(value: str) -> str:
     if value not in MEAL_TYPES:
         raise ValueError(f"meal_type must be one of {sorted(MEAL_TYPES)}")

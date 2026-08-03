@@ -59,3 +59,16 @@ def test_manual_food_persists_as_manual(client):
     assert body["source"] == "manual"
     assert body["source_id"] is None
     assert body["name"] == "Grandma stew"
+
+
+def test_list_manual_foods(client):
+    client.post("/foods/manual", json={
+        "name": "Stew", "calories_100g": 120, "protein_100g": 9,
+        "carbs_100g": 6, "fat_100g": 5,
+    })
+    resp = client.get("/foods/manual")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["name"] == "Stew"
+    assert isinstance(body[0]["id"], int)
