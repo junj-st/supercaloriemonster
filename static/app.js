@@ -6,6 +6,7 @@ const today = () => {
 };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const num = (n) => { const x = +n; return Number.isFinite(x) ? String(x) : "0"; };
+const badge = (f) => (f.source === "manual" ? '<span class="badge-custom">Custom</span>' : "");
 const skeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton-row"></div>').join("");
 const TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>';
 
@@ -100,7 +101,7 @@ function renderResults(el, foods) {
   if (!foods.length) { $(el).innerHTML = '<div class="note">No matches found.</div>'; return; }
   $(el).innerHTML = foods.map((f, i) => `
     <div class="log-row tappable" data-i="${i}">
-      <div class="log-main"><div class="name">${esc(f.name)}</div><div class="meta">${esc(f.brand || "generic")} · ${num(f.calories_100g)} cal/100g</div></div>
+      <div class="log-main"><div class="name">${esc(f.name)}${badge(f)}</div><div class="meta">${esc(f.brand || "generic")} · ${num(f.calories_100g)} cal/100g</div></div>
       <span class="add-mark">+</span>
     </div>`).join("");
   $(el).querySelectorAll(".log-row").forEach((row) =>
@@ -113,7 +114,7 @@ async function loadQuickLists() {
   const favFoods = favorites.map((f) => f.food);
   const section = (title, foods) => foods.length
     ? `<div class="section-label">${title}</div>` + foods.map((f, i) =>
-        `<div class="log-row tappable" data-list="${title}" data-i="${i}"><div class="log-main"><div class="name">${esc(f.name)}</div></div><span class="add-mark">+</span></div>`).join("")
+        `<div class="log-row tappable" data-list="${title}" data-i="${i}"><div class="log-main"><div class="name">${esc(f.name)}${badge(f)}</div></div><span class="add-mark">+</span></div>`).join("")
     : "";
   $("#quick-lists").innerHTML = section("Recents", recents) + section("Favorites", favFoods);
   $("#quick-lists").querySelectorAll(".log-row").forEach((row) => {

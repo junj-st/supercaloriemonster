@@ -167,6 +167,22 @@ main { padding: var(--space-lg); max-width: 640px; margin: 0 auto; }
 }
 .del:active { background: var(--danger); color: var(--on-fill); transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
 
+/* ---- custom-food badge ---- */
+.badge-custom {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: var(--space-xs, 4px);
+  padding: 1px 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  border: var(--border-w, 2.5px) solid var(--ink, #16150f);
+  border-radius: var(--radius, 5px);
+  box-shadow: 2px 2px 0 var(--shadow-col, #16150f);
+  background: var(--accent, #ff4d8d);
+  color: var(--on-fill, #16150f);
+}
+
 /* tappable rows (search results / recents / favorites) */
 .log-row.tappable { cursor: pointer; transition: transform 60ms ease, box-shadow 60ms ease; }
 .log-row.tappable:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }

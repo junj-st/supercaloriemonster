@@ -53,3 +53,13 @@ def test_icon_served():
     resp = client.get("/static/icon.svg")
     assert resp.status_code == 200
     assert "svg" in resp.headers["content-type"]
+
+
+def test_app_js_has_custom_badge():
+    js = client.get("/static/app.js").text
+    assert "badge-custom" in js
+    assert 'source === "manual"' in js
+
+
+def test_style_has_custom_badge():
+    assert "badge-custom" in client.get("/static/style.css").text
