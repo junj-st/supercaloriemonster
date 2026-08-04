@@ -63,3 +63,15 @@ def test_app_js_has_custom_badge():
 
 def test_style_has_custom_badge():
     assert "badge-custom" in client.get("/static/style.css").text
+
+
+def test_foods_tab_present():
+    html = client.get("/").text  # root serves the app shell (index.html)
+    assert 'data-view="foods"' in html
+    assert 'id="view-foods"' in html
+
+
+def test_app_js_loads_foods():
+    js = client.get("/static/app.js").text
+    assert "function loadFoods" in js
+    assert "/foods/manual" in js

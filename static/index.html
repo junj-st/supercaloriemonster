@@ -16,6 +16,7 @@
       <button data-view="today" class="active">Today</button>
       <button data-view="search">Add</button>
       <button data-view="history">History</button>
+      <button data-view="foods">Foods</button>
     </nav>
   </header>
 
@@ -36,6 +37,12 @@
       <input id="history-date" type="date" />
       <div class="totals" id="history-totals"></div>
       <div id="history-meals"></div>
+    </section>
+
+    <section id="view-foods" class="view hidden">
+      <div class="section-label">My foods</div>
+      <button class="btn-primary" id="add-custom-food">+ Add custom food</button>
+      <div id="foods-list"></div>
     </section>
   </main>
 

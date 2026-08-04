@@ -22,6 +22,7 @@ document.querySelectorAll("nav button").forEach((btn) => {
     if (btn.dataset.view === "today") loadDay(today(), "#totals", "#day-meals", true);
     if (btn.dataset.view === "search") loadQuickLists();
     if (btn.dataset.view === "history") loadDay($("#history-date").value || today(), "#history-totals", "#history-meals", false);
+    if (btn.dataset.view === "foods") loadFoods();
   });
 });
 
@@ -121,6 +122,31 @@ async function loadQuickLists() {
     const list = row.dataset.list === "Recents" ? recents : favFoods;
     row.addEventListener("click", () => openLogDialog(list[row.dataset.i]));
   });
+}
+
+// ---- foods (My Foods) ----
+async function loadFoods() {
+  const foods = await api("/foods/manual");
+  const list = $("#foods-list");
+  if (!foods.length) { list.innerHTML = '<div class="note">No custom foods yet.</div>'; return; }
+  list.innerHTML = foods.map((f, i) => `
+    <div class="log-row">
+      <div class="log-main tappable" data-log="${i}"><div class="name">${esc(f.name)}<span class="badge-custom">Custom</span></div><div class="meta">${num(f.calories_100g)} cal/100g</div></div>
+      <div class="log-right">
+        <button class="food-edit" data-edit="${i}" aria-label="Edit ${esc(f.name)}">Edit</button>
+        <button class="del" data-del-food="${f.id}" aria-label="Delete ${esc(f.name)}">${TRASH}</button>
+      </div>
+    </div>`).join("");
+  list.querySelectorAll("[data-log]").forEach((el) =>
+    el.addEventListener("click", () => openLogDialog(foods[el.dataset.log])));
+  list.querySelectorAll("[data-del-food]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      if (!confirm("Delete this custom food? Past logged entries are kept.")) return;
+      await fetch("/foods/manual/" + b.dataset.delFood, { method: "DELETE" });
+      loadFoods();
+    }));
+  list.querySelectorAll("[data-edit]").forEach((b) =>
+    b.addEventListener("click", () => openFoodForm(foods[b.dataset.edit])));  // openFoodForm defined in Task 9
 }
 
 // ---- log dialog ----
