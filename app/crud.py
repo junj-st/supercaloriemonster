@@ -65,6 +65,19 @@ def log_history(db: Session) -> dict:
     return hist
 
 
+def custom_matches(db: Session, query: str) -> list[NormalizedFood]:
+    tokens = [t for t in query.lower().split() if t]
+    if not tokens:
+        return []
+    rows = db.execute(select(Food).where(Food.source == "manual")).scalars().all()
+    out: list[NormalizedFood] = []
+    for f in rows:
+        name = (f.name or "").lower()
+        if any(tok in name for tok in tokens):
+            out.append(to_normalized(f))
+    return out
+
+
 def to_normalized(food: Food) -> NormalizedFood:
     return NormalizedFood(
         source=food.source,

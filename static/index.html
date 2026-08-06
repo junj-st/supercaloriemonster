@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f4efe2" />
   <meta name="color-scheme" content="dark light" />
   <link rel="manifest" href="/static/manifest.json" />
-  <link rel="stylesheet" href="/static/style.css?v=nb1" />
+  <link rel="stylesheet" href="/static/style.css?v=nb2" />
   <title>supercaloriemonster</title>
 </head>
 <body>
@@ -16,6 +16,7 @@
       <button data-view="today" class="active">Today</button>
       <button data-view="search">Add</button>
       <button data-view="history">History</button>
+      <button data-view="foods">Foods</button>
     </nav>
   </header>
 
@@ -29,6 +30,7 @@
     <section id="view-search" class="view hidden">
       <input id="search-box" type="search" placeholder="Search foods…" autocomplete="off" />
       <div id="search-results"></div>
+      <button class="btn-secondary" id="add-custom-food-search">Can't find it? + Add custom food</button>
       <div id="quick-lists"></div>
     </section>
 
@@ -36,6 +38,12 @@
       <input id="history-date" type="date" />
       <div class="totals" id="history-totals"></div>
       <div id="history-meals"></div>
+    </section>
+
+    <section id="view-foods" class="view hidden">
+      <div class="section-label">My foods</div>
+      <button class="btn-primary" id="add-custom-food">+ Add custom food</button>
+      <div id="foods-list"></div>
     </section>
   </main>
 
@@ -60,6 +68,33 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=nb1"></script>
+  <div id="food-form-dialog" class="hidden">
+    <div class="dialog-card">
+      <h3 id="food-form-title">Add custom food</h3>
+      <label>Name <input id="food-name" type="text" /></label>
+      <label>Brand (optional) <input id="food-brand" type="text" /></label>
+
+      <div class="basis-toggle">
+        <label><input type="radio" name="basis" value="per100" checked /> Per 100 g</label>
+        <label><input type="radio" name="basis" value="serving" /> Per serving</label>
+      </div>
+
+      <label class="basis-serving hidden">Serving size (g) <input id="food-serving-grams" type="number" min="0" step="1" /></label>
+      <label class="basis-serving hidden">Serving desc (e.g. 1 bar) <input id="food-serving-desc" type="text" /></label>
+
+      <label><span id="lbl-cal">Calories / 100 g</span> <input id="food-cal" type="number" min="0" step="1" /></label>
+      <label><span id="lbl-pro">Protein / 100 g</span> <input id="food-pro" type="number" min="0" step="0.1" /></label>
+      <label><span id="lbl-carb">Carbs / 100 g</span> <input id="food-carb" type="number" min="0" step="0.1" /></label>
+      <label><span id="lbl-fat">Fat / 100 g</span> <input id="food-fat" type="number" min="0" step="0.1" /></label>
+
+      <div id="food-form-hint" class="hint"></div>
+      <div class="dialog-actions">
+        <button id="food-form-cancel">Cancel</button>
+        <button id="food-form-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=nb2"></script>
 </body>
 </html>

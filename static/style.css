@@ -159,17 +159,40 @@ main { padding: var(--space-lg); max-width: 640px; margin: 0 auto; }
 .log-row .meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .log-right { display: flex; align-items: center; gap: var(--space-sm); flex-shrink: 0; }
 .log-row .kcal { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text); }
-.del {
+.del, .food-edit {
   background: var(--card); border: var(--border-w) solid var(--ink); border-radius: var(--radius);
   padding: 6px; color: var(--text); cursor: pointer; display: inline-flex; line-height: 0;
   box-shadow: var(--shadow-sm);
   transition: transform 60ms ease, box-shadow 60ms ease, background 60ms ease, color 60ms ease;
 }
 .del:active { background: var(--danger); color: var(--on-fill); transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
+.food-edit {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; line-height: 1.2;
+}
+.food-edit:active { background: var(--accent); color: var(--on-fill); transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
+
+/* ---- custom-food badge ---- */
+.badge-custom {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: var(--space-xs, 4px);
+  padding: 1px 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  border: var(--border-w, 2.5px) solid var(--ink, #16150f);
+  border-radius: var(--radius, 5px);
+  box-shadow: var(--shadow-sm);
+  background: var(--accent, #ff4d8d);
+  color: var(--on-fill, #16150f);
+}
 
 /* tappable rows (search results / recents / favorites) */
 .log-row.tappable { cursor: pointer; transition: transform 60ms ease, box-shadow 60ms ease; }
 .log-row.tappable:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
+.log-main.tappable { cursor: pointer; transition: transform 60ms ease, box-shadow 60ms ease; }
+.log-main.tappable:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
 .add-mark {
   flex-shrink: 0;
   background: var(--accent); color: var(--on-fill);
@@ -234,12 +257,12 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .btn-primary:active, .btn-secondary:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--shadow-col); }
 
 /* ---- log dialog / bottom sheet ---- */
-#log-dialog {
+#log-dialog, #food-form-dialog {
   position: fixed; inset: 0; z-index: 20;
   background: rgba(0,0,0,0.5);
   display: flex; align-items: flex-end;
 }
-#log-dialog.hidden { display: none; }
+#log-dialog.hidden, #food-form-dialog.hidden { display: none; }
 .dialog-card {
   background: var(--card);
   width: 100%; max-width: 640px; margin: 0 auto;
@@ -272,6 +295,14 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   min-height: 16px; margin-top: var(--space-sm);
 }
 .hint.error { color: var(--danger); font-weight: 700; }
+
+/* ---- custom-food form: basis toggle ---- */
+.basis-toggle { display: flex; gap: var(--space-lg); margin: var(--space-md) 0; }
+.basis-toggle label {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0; text-transform: none; font-weight: 600;
+}
+#add-custom-food-search { margin: var(--space-md) 0; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

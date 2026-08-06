@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.crud import compute_macros, upsert_food
 from app.db import get_db
-from app.models import Food, Log
+from app.models import Log
 from app.schemas import (
     MEAL_ORDER,
     DayOut,
@@ -19,10 +19,11 @@ from app.schemas import (
 router = APIRouter(prefix="/logs", tags=["logs"])
 
 
-def _entry_out(log: Log, food: Food) -> LogEntryOut:
-    m = compute_macros(food, log.amount_g)
+def _entry_out(log: Log) -> LogEntryOut:
+    # compute_macros reads .*_100g; a Log carries those snapshot fields.
+    m = compute_macros(log, log.amount_g)
     return LogEntryOut(
-        id=log.id, food_id=food.id, name=food.name, brand=food.brand,
+        id=log.id, food_id=log.food_id, name=log.name, brand=log.brand,
         meal_type=log.meal_type, amount_g=log.amount_g,
         calories=m.calories, protein_g=m.protein_g,
         carbs_g=m.carbs_g, fat_g=m.fat_g,
@@ -31,13 +32,19 @@ def _entry_out(log: Log, food: Food) -> LogEntryOut:
 
 @router.post("", response_model=LogEntryOut, status_code=201)
 def create_log(body: LogCreate, db: Session = Depends(get_db)) -> LogEntryOut:
-    food = upsert_food(db, body.food)
-    log = Log(food_id=food.id, date=body.date, meal_type=body.meal_type,
-              amount_g=body.amount_g, created_at=datetime.now(timezone.utc))
+    food = upsert_food(db, body.food)  # keep the Food catalog for search history/dedup
+    log = Log(
+        food_id=food.id, date=body.date, meal_type=body.meal_type,
+        amount_g=body.amount_g, created_at=datetime.now(timezone.utc),
+        name=body.food.name, brand=body.food.brand,
+        calories_100g=body.food.calories_100g, protein_100g=body.food.protein_100g,
+        carbs_100g=body.food.carbs_100g, fat_100g=body.food.fat_100g,
+        serving_desc=body.food.serving_desc, serving_grams=body.food.serving_grams,
+    )
     db.add(log)
     db.commit()
     db.refresh(log)
-    return _entry_out(log, food)
+    return _entry_out(log)
 
 
 @router.put("/{log_id}", response_model=LogEntryOut)
@@ -53,7 +60,7 @@ def update_log(log_id: int, body: LogUpdate, db: Session = Depends(get_db)) -> L
         log.amount_g = body.amount_g
     db.commit()
     db.refresh(log)
-    return _entry_out(log, db.get(Food, log.food_id))
+    return _entry_out(log)
 
 
 @router.delete("/{log_id}", status_code=204)
@@ -68,13 +75,11 @@ def delete_log(log_id: int, db: Session = Depends(get_db)) -> Response:
 
 @router.get("/day/{day}", response_model=DayOut)
 def day_summary(day: date, db: Session = Depends(get_db)) -> DayOut:
-    rows = db.execute(
-        select(Log, Food).join(Food, Log.food_id == Food.id).where(Log.date == day)
-    ).all()
+    logs = db.execute(select(Log).where(Log.date == day)).scalars().all()
     meals: dict[str, list[LogEntryOut]] = {m: [] for m in MEAL_ORDER}
     totals = Totals()
-    for log, food in rows:
-        entry = _entry_out(log, food)
+    for log in logs:
+        entry = _entry_out(log)
         meals.setdefault(entry.meal_type, []).append(entry)
         totals.calories = round(totals.calories + entry.calories, 1)
         totals.protein_g = round(totals.protein_g + entry.protein_g, 1)

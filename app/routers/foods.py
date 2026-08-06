@@ -1,14 +1,16 @@
 import logging
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.config import Settings, get_settings
 from app.crud import to_normalized, upsert_food
 from app.db import get_db
-from app.schemas import ManualFoodIn, NormalizedFood, SearchResult
+from app.models import Favorite, Food, Log
+from app.schemas import ManualFoodIn, ManualFoodOut, NormalizedFood, SearchResult
 from app.sources.base import FoodSource
 from app.sources.off import OFFFoodSource
 from app.sources.search import search_foods
@@ -39,11 +41,12 @@ async def search(
     if not q.strip():
         return SearchResult(results=[], partial=False)
     history = crud.log_history(db)
+    custom = crud.custom_matches(db, q.strip())
     async with httpx.AsyncClient(
         timeout=settings.http_timeout,
         headers={"User-Agent": "supercaloriemonster/1.0 (https://github.com/junj-st/supercaloriemonster)"},
     ) as client:
-        return await search_foods(q.strip(), sources, client, history)
+        return await search_foods(q.strip(), sources, client, history, custom)
 
 
 @router.post("/manual", response_model=NormalizedFood, status_code=201)
@@ -51,3 +54,39 @@ def manual(body: ManualFoodIn, db: Session = Depends(get_db)) -> NormalizedFood:
     food = NormalizedFood(source="manual", source_id=None, **body.model_dump())
     saved = upsert_food(db, food)
     return to_normalized(saved)
+
+
+@router.get("/manual", response_model=list[ManualFoodOut])
+def list_manual(db: Session = Depends(get_db)) -> list[ManualFoodOut]:
+    foods = db.execute(
+        select(Food).where(Food.source == "manual").order_by(Food.id.desc())
+    ).scalars().all()
+    return [ManualFoodOut.model_validate(f) for f in foods]
+
+
+@router.put("/manual/{food_id}", response_model=ManualFoodOut)
+def edit_manual(food_id: int, body: ManualFoodIn, db: Session = Depends(get_db)) -> ManualFoodOut:
+    food = db.get(Food, food_id)
+    if food is None or food.source != "manual":
+        raise HTTPException(status_code=404, detail="custom food not found")
+    for field, value in body.model_dump().items():
+        setattr(food, field, value)
+    db.commit()
+    db.refresh(food)
+    return ManualFoodOut.model_validate(food)
+
+
+@router.delete("/manual/{food_id}", status_code=204)
+def delete_manual(food_id: int, db: Session = Depends(get_db)) -> Response:
+    food = db.get(Food, food_id)
+    if food is None or food.source != "manual":
+        raise HTTPException(status_code=404, detail="custom food not found")
+    # Detach logs so History (which reads its own snapshot) survives the delete.
+    db.execute(update(Log).where(Log.food_id == food_id).values(food_id=None))
+    # Favorite.food_id is non-nullable + unique, so it can't be detached like Log —
+    # remove it outright to avoid a dangling row that silently vanishes from
+    # list_favorites (inner join) and can never be deleted by the user.
+    db.execute(delete(Favorite).where(Favorite.food_id == food_id))
+    db.delete(food)
+    db.commit()
+    return Response(status_code=204)

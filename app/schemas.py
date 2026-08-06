@@ -1,6 +1,6 @@
 from datetime import date as _date
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 MEAL_ORDER: list[str] = ["breakfast", "lunch", "dinner", "snack"]
 MEAL_TYPES: set[str] = set(MEAL_ORDER)
@@ -26,6 +26,20 @@ class SearchResult(BaseModel):
 
 
 class ManualFoodIn(BaseModel):
+    name: str
+    brand: str | None = None
+    calories_100g: float
+    protein_100g: float
+    carbs_100g: float
+    fat_100g: float
+    serving_desc: str | None = None
+    serving_grams: float | None = None
+
+
+class ManualFoodOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     name: str
     brand: str | None = None
     calories_100g: float
@@ -67,7 +81,7 @@ class LogUpdate(BaseModel):
 
 class LogEntryOut(BaseModel):
     id: int
-    food_id: int
+    food_id: int | None
     name: str
     brand: str | None
     meal_type: str

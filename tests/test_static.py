@@ -53,3 +53,37 @@ def test_icon_served():
     resp = client.get("/static/icon.svg")
     assert resp.status_code == 200
     assert "svg" in resp.headers["content-type"]
+
+
+def test_app_js_has_custom_badge():
+    js = client.get("/static/app.js").text
+    assert "badge-custom" in js
+    assert 'source === "manual"' in js
+
+
+def test_style_has_custom_badge():
+    assert "badge-custom" in client.get("/static/style.css").text
+
+
+def test_foods_tab_present():
+    html = client.get("/").text  # root serves the app shell (index.html)
+    assert 'data-view="foods"' in html
+    assert 'id="view-foods"' in html
+
+
+def test_app_js_loads_foods():
+    js = client.get("/static/app.js").text
+    assert "function loadFoods" in js
+    assert "/foods/manual" in js
+
+
+def test_food_form_present():
+    html = client.get("/").text
+    assert 'id="food-form-dialog"' in html
+    assert 'name="basis"' in html  # per-serving / per-100g toggle
+
+
+def test_app_js_has_food_form():
+    js = client.get("/static/app.js").text
+    assert "function openFoodForm" in js
+    assert "per100" in js and "serving" in js

@@ -26,6 +26,7 @@ async def search_foods(
     sources: list[FoodSource],
     client: httpx.AsyncClient,
     history: dict | None = None,
+    custom_foods: list[NormalizedFood] | None = None,
 ) -> SearchResult:
     history = history or {}
     results = await asyncio.gather(
@@ -45,4 +46,6 @@ async def search_foods(
     staple = staples.staple_for(query)
     if staple is not None:
         merged = [staple] + merged   # staple leads; _dedupe drops same-named source hits
+    if custom_foods:
+        merged = list(custom_foods) + merged   # user's own foods lead everything
     return SearchResult(results=_dedupe(merged), partial=partial)

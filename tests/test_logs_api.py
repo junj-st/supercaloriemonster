@@ -42,3 +42,21 @@ def test_reused_food_is_not_duplicated(client):
     # both logs point at the same upserted food row; day has 2 entries
     body = client.get("/logs/day/2026-07-24").json()
     assert len(body["meals"]["lunch"]) == 2
+
+
+def test_history_frozen_after_food_edit(client):
+    # Log a manual food at 120 cal/100g, 100 g -> 120 cal.
+    client.post("/logs", json={
+        "food": {"source": "manual", "source_id": None, "name": "Stew",
+                 "calories_100g": 120, "protein_100g": 9, "carbs_100g": 6,
+                 "fat_100g": 5, "serving_desc": "1 bowl", "serving_grams": 350},
+        "date": "2026-07-28", "meal_type": "lunch", "amount_g": 100,
+    })
+    # Edit the same manual food's macros via re-POST (upsert by name+brand).
+    client.post("/foods/manual", json={
+        "name": "Stew", "calories_100g": 999, "protein_100g": 1,
+        "carbs_100g": 1, "fat_100g": 1,
+    })
+    # Past History must still reflect the snapshot (120), not 999.
+    day = client.get("/logs/day/2026-07-28").json()
+    assert day["totals"]["calories"] == 120.0
