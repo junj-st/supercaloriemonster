@@ -318,6 +318,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   content: ""; position: absolute; inset: 4px;
   border-radius: 50%; background: var(--on-fill);
 }
+#add-custom-food { margin-bottom: var(--space-lg); }
 #add-custom-food-search { margin: var(--space-md) 0; }
 
 @media (prefers-reduced-motion: reduce) {
