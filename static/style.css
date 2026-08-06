@@ -159,13 +159,18 @@ main { padding: var(--space-lg); max-width: 640px; margin: 0 auto; }
 .log-row .meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .log-right { display: flex; align-items: center; gap: var(--space-sm); flex-shrink: 0; }
 .log-row .kcal { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--text); }
-.del {
+.del, .food-edit {
   background: var(--card); border: var(--border-w) solid var(--ink); border-radius: var(--radius);
   padding: 6px; color: var(--text); cursor: pointer; display: inline-flex; line-height: 0;
   box-shadow: var(--shadow-sm);
   transition: transform 60ms ease, box-shadow 60ms ease, background 60ms ease, color 60ms ease;
 }
 .del:active { background: var(--danger); color: var(--on-fill); transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
+.food-edit {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; line-height: 1.2;
+}
+.food-edit:active { background: var(--accent); color: var(--on-fill); transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
 
 /* ---- custom-food badge ---- */
 .badge-custom {
