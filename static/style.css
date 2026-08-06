@@ -191,6 +191,8 @@ main { padding: var(--space-lg); max-width: 640px; margin: 0 auto; }
 /* tappable rows (search results / recents / favorites) */
 .log-row.tappable { cursor: pointer; transition: transform 60ms ease, box-shadow 60ms ease; }
 .log-row.tappable:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
+.log-main.tappable { cursor: pointer; transition: transform 60ms ease, box-shadow 60ms ease; }
+.log-main.tappable:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--shadow-col); }
 .add-mark {
   flex-shrink: 0;
   background: var(--accent); color: var(--on-fill);

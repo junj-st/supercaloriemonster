@@ -131,7 +131,7 @@ async function loadFoods() {
   if (!foods.length) { list.innerHTML = '<div class="note">No custom foods yet.</div>'; return; }
   list.innerHTML = foods.map((f, i) => `
     <div class="log-row">
-      <div class="log-main tappable" data-log="${i}"><div class="name">${esc(f.name)}<span class="badge-custom">Custom</span></div><div class="meta">${num(f.calories_100g)} cal/100g</div></div>
+      <div class="log-main tappable" data-log="${i}"><div class="name">${esc(f.name)}${badge(f)}</div><div class="meta">${num(f.calories_100g)} cal/100g</div></div>
       <div class="log-right">
         <button class="food-edit" data-edit="${i}" aria-label="Edit ${esc(f.name)}">Edit</button>
         <button class="del" data-del-food="${f.id}" aria-label="Delete ${esc(f.name)}">${TRASH}</button>
