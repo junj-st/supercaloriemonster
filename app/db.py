@@ -37,9 +37,10 @@ def _migrate(bind=engine) -> None:
     backfill them from the referenced food. New databases are created with the
     columns already present by `create_all`, so this is a no-op for them."""
     with bind.begin() as conn:
-        cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(logs)")}
-        if not cols:
+        info = list(conn.exec_driver_sql("PRAGMA table_info(logs)"))
+        if not info:
             return
+        cols = {row[1] for row in info}
         added = False
         for name, coltype in _LOG_SNAPSHOT_COLUMNS.items():
             if name not in cols:
@@ -60,6 +61,45 @@ def _migrate(bind=engine) -> None:
                 WHERE calories_100g IS NULL AND food_id IN (SELECT id FROM foods)
                 """
             )
+
+        # SQLite's ALTER TABLE ADD COLUMN cannot relax an existing NOT NULL
+        # constraint, and SQLite has no ALTER COLUMN. On pre-branch DBs
+        # `logs.food_id` is still physically NOT NULL even though the model
+        # (and freshly-created DBs) treat it as nullable. Rebuild the table
+        # to drop that constraint.
+        food_id_notnull = any(
+            row[1] == "food_id" and row[3] == 1 for row in info
+        )
+        if food_id_notnull:
+            conn.exec_driver_sql("ALTER TABLE logs RENAME TO _logs_old")
+            conn.exec_driver_sql(
+                "CREATE TABLE logs ("
+                " id INTEGER NOT NULL PRIMARY KEY,"
+                " food_id INTEGER,"
+                " date DATE NOT NULL,"
+                " meal_type VARCHAR NOT NULL,"
+                " amount_g FLOAT NOT NULL,"
+                " created_at DATETIME NOT NULL,"
+                " name VARCHAR,"
+                " brand VARCHAR,"
+                " calories_100g FLOAT,"
+                " protein_100g FLOAT,"
+                " carbs_100g FLOAT,"
+                " fat_100g FLOAT,"
+                " serving_desc VARCHAR,"
+                " serving_grams FLOAT,"
+                " FOREIGN KEY(food_id) REFERENCES foods (id)"
+                ")"
+            )
+            conn.exec_driver_sql(
+                "INSERT INTO logs (id, food_id, date, meal_type, amount_g, created_at,"
+                " name, brand, calories_100g, protein_100g, carbs_100g, fat_100g,"
+                " serving_desc, serving_grams) "
+                "SELECT id, food_id, date, meal_type, amount_g, created_at,"
+                " name, brand, calories_100g, protein_100g, carbs_100g, fat_100g,"
+                " serving_desc, serving_grams FROM _logs_old"
+            )
+            conn.exec_driver_sql("DROP TABLE _logs_old")
 
 
 def init_db() -> None:
