@@ -2,14 +2,14 @@ import logging
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.config import Settings, get_settings
 from app.crud import to_normalized, upsert_food
 from app.db import get_db
-from app.models import Food, Log
+from app.models import Favorite, Food, Log
 from app.schemas import ManualFoodIn, ManualFoodOut, NormalizedFood, SearchResult
 from app.sources.base import FoodSource
 from app.sources.off import OFFFoodSource
@@ -61,9 +61,7 @@ def list_manual(db: Session = Depends(get_db)) -> list[ManualFoodOut]:
     foods = db.execute(
         select(Food).where(Food.source == "manual").order_by(Food.id.desc())
     ).scalars().all()
-    return [ManualFoodOut(**{c: getattr(f, c) for c in (
-        "id", "name", "brand", "calories_100g", "protein_100g",
-        "carbs_100g", "fat_100g", "serving_desc", "serving_grams")}) for f in foods]
+    return [ManualFoodOut.model_validate(f) for f in foods]
 
 
 @router.put("/manual/{food_id}", response_model=ManualFoodOut)
@@ -75,9 +73,7 @@ def edit_manual(food_id: int, body: ManualFoodIn, db: Session = Depends(get_db))
         setattr(food, field, value)
     db.commit()
     db.refresh(food)
-    return ManualFoodOut(**{c: getattr(food, c) for c in (
-        "id", "name", "brand", "calories_100g", "protein_100g",
-        "carbs_100g", "fat_100g", "serving_desc", "serving_grams")})
+    return ManualFoodOut.model_validate(food)
 
 
 @router.delete("/manual/{food_id}", status_code=204)
@@ -87,6 +83,10 @@ def delete_manual(food_id: int, db: Session = Depends(get_db)) -> Response:
         raise HTTPException(status_code=404, detail="custom food not found")
     # Detach logs so History (which reads its own snapshot) survives the delete.
     db.execute(update(Log).where(Log.food_id == food_id).values(food_id=None))
+    # Favorite.food_id is non-nullable + unique, so it can't be detached like Log —
+    # remove it outright to avoid a dangling row that silently vanishes from
+    # list_favorites (inner join) and can never be deleted by the user.
+    db.execute(delete(Favorite).where(Favorite.food_id == food_id))
     db.delete(food)
     db.commit()
     return Response(status_code=204)
