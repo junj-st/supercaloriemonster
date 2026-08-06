@@ -75,3 +75,15 @@ def test_app_js_loads_foods():
     js = client.get("/static/app.js").text
     assert "function loadFoods" in js
     assert "/foods/manual" in js
+
+
+def test_food_form_present():
+    html = client.get("/").text
+    assert 'id="food-form-dialog"' in html
+    assert 'name="basis"' in html  # per-serving / per-100g toggle
+
+
+def test_app_js_has_food_form():
+    js = client.get("/static/app.js").text
+    assert "function openFoodForm" in js
+    assert "per100" in js and "serving" in js

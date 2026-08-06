@@ -257,12 +257,12 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 .btn-primary:active, .btn-secondary:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--shadow-col); }
 
 /* ---- log dialog / bottom sheet ---- */
-#log-dialog {
+#log-dialog, #food-form-dialog {
   position: fixed; inset: 0; z-index: 20;
   background: rgba(0,0,0,0.5);
   display: flex; align-items: flex-end;
 }
-#log-dialog.hidden { display: none; }
+#log-dialog.hidden, #food-form-dialog.hidden { display: none; }
 .dialog-card {
   background: var(--card);
   width: 100%; max-width: 640px; margin: 0 auto;
@@ -295,6 +295,14 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   min-height: 16px; margin-top: var(--space-sm);
 }
 .hint.error { color: var(--danger); font-weight: 700; }
+
+/* ---- custom-food form: basis toggle ---- */
+.basis-toggle { display: flex; gap: var(--space-lg); margin: var(--space-md) 0; }
+.basis-toggle label {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0; text-transform: none; font-weight: 600;
+}
+#add-custom-food-search { margin: var(--space-md) 0; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
