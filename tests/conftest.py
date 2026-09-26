@@ -1,3 +1,11 @@
+import os
+import tempfile
+
+# Must run before any `app` import: app.db builds its engine from settings at
+# import time, and TestClient's lifespan runs init_db() against it. Without this
+# the suite would open (and migrate) the developer's real data/scm.db.
+os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(prefix="scm-test-"), "scm.db")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
