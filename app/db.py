@@ -1,7 +1,8 @@
 import os
 from collections.abc import Iterator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -9,6 +10,17 @@ from app.config import get_settings
 
 class Base(DeclarativeBase):
     pass
+
+
+@event.listens_for(Engine, "connect")
+def _sqlite_pragmas(dbapi_conn, _record) -> None:
+    """SQLite ships with foreign keys OFF and a rollback journal; turn on FK
+    enforcement and WAL for every connection (incl. test engines). WAL is a
+    no-op for :memory: databases."""
+    cur = dbapi_conn.cursor()
+    cur.execute("PRAGMA foreign_keys=ON")
+    cur.execute("PRAGMA journal_mode=WAL")
+    cur.close()
 
 
 settings = get_settings()
@@ -95,7 +107,12 @@ def _migrate(bind=engine) -> None:
                 "INSERT INTO logs (id, food_id, date, meal_type, amount_g, created_at,"
                 " name, brand, calories_100g, protein_100g, carbs_100g, fat_100g,"
                 " serving_desc, serving_grams) "
-                "SELECT id, food_id, date, meal_type, amount_g, created_at,"
+                # Null out dangling food_ids (written before FKs were enforced)
+                # so the copy doesn't trip foreign_keys=ON; the snapshot
+                # columns keep those rows intact for History.
+                "SELECT id,"
+                " CASE WHEN food_id IN (SELECT id FROM foods) THEN food_id END,"
+                " date, meal_type, amount_g, created_at,"
                 " name, brand, calories_100g, protein_100g, carbs_100g, fat_100g,"
                 " serving_desc, serving_grams FROM _logs_old"
             )

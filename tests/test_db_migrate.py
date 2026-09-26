@@ -1,4 +1,6 @@
+import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 
 from app.db import _migrate
 
@@ -114,3 +116,34 @@ def test_migrate_relax_food_id_not_null_is_idempotent(tmp_path):
         assert notnull["food_id"] == 0
         row = c.exec_driver_sql("SELECT name FROM logs WHERE id=1").fetchone()
     assert row[0] == "Stew"
+
+
+def test_migrate_rebuild_nulls_dangling_food_id(tmp_path):
+    """Pre-FK databases can hold logs whose food was deleted. The rebuild runs
+    with foreign_keys=ON, so it must null those out rather than fail."""
+    engine = create_engine(f"sqlite:///{tmp_path}/t.db")
+    _legacy_schema_not_null_food_id(engine)
+    with engine.connect() as c:
+        c.exec_driver_sql("PRAGMA foreign_keys=OFF")  # simulate pre-FK writes
+        c.exec_driver_sql(
+            "INSERT INTO logs (id, food_id, date, meal_type, amount_g, created_at)"
+            " VALUES (2,99,'2026-07-28','dinner',50,'2026-07-28')"
+        )
+        c.commit()
+
+    _migrate(engine)
+
+    with engine.begin() as c:
+        rows = c.exec_driver_sql("SELECT id, food_id FROM logs ORDER BY id").fetchall()
+    assert rows == [(1, 1), (2, None)]
+
+
+def test_foreign_keys_are_enforced(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path}/t.db")
+    _legacy_schema_not_null_food_id(engine)
+    with pytest.raises(IntegrityError):
+        with engine.begin() as c:
+            c.exec_driver_sql(
+                "INSERT INTO logs (id, food_id, date, meal_type, amount_g, created_at)"
+                " VALUES (3,99,'2026-07-28','dinner',50,'2026-07-28')"
+            )
