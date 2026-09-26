@@ -18,11 +18,18 @@ docker compose up --build
 
 Open http://localhost:8000. Without a USDA key it runs Open Food Facts only.
 
+The container publishes on `127.0.0.1` only, because **scm has no authentication**. To use it
+from your phone or other devices, put a reverse proxy with auth in front of it (e.g. Caddy with
+`basic_auth`, or Tailscale) instead of exposing port 8000 directly.
+
+The container runs as UID 1000. If your host's `./data` directory is owned by a different user,
+`chown 1000 data` once.
+
 ## Run locally (without Docker)
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # app deps + pytest/ruff
 uvicorn app.main:app --reload
 ```
 
@@ -32,13 +39,22 @@ uvicorn app.main:app --reload
 |----------------|---------|---------|
 | `USDA_API_KEY` | (unset) | Free key from https://fdc.nal.usda.gov/api-key-signup.html. Unset → OFF-only. |
 
-Your data lives in `data/scm.db` (gitignored). Back it up by copying that file.
+Your data lives in `data/scm.db` (gitignored). The database runs in WAL mode, so copying the
+`.db` file alone while the app is running can miss recent writes. Back up with:
+
+```bash
+sqlite3 data/scm.db ".backup data/scm-backup-$(date +%F).db"
+```
 
 ## Tests
 
 ```bash
 pytest -v
+ruff check .
 ```
+
+Tests use a throwaway database and never touch `data/scm.db`. CI runs both on every PR, plus a
+Docker build and health-check smoke test.
 
 ## API
 

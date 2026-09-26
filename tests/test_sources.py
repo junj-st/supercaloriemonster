@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import httpx
-import pytest
 
 from app.sources.off import OFFFoodSource
 from app.sources.usda import USDAFoodSource

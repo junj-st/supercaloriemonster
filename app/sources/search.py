@@ -34,7 +34,7 @@ async def search_foods(
     )
     scored: list[tuple[float, NormalizedFood]] = []
     partial = False
-    for source, res in zip(sources, results):
+    for source, res in zip(sources, results, strict=True):
         if isinstance(res, Exception):
             partial = True
             logger.warning("source %s failed: %s", source.name, res)
