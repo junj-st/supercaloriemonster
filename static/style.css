@@ -279,7 +279,7 @@ input:focus-visible, select:focus-visible, button:focus-visible {
   font-size: 11px; font-weight: 800; color: var(--text);
   text-transform: uppercase; letter-spacing: 0.06em;
 }
-.dialog-card input, .dialog-card select {
+.dialog-card input:not([type="radio"]):not([type="checkbox"]), .dialog-card select {
   display: block; width: 100%; margin-top: 6px;
   background: var(--card); color: var(--text);
   border: var(--border-w) solid var(--ink); border-radius: var(--radius);
@@ -289,7 +289,11 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 }
 .dialog-card input:disabled { opacity: 0.4; }
 .dialog-actions { display: flex; gap: var(--space-md); margin-top: var(--space-lg); }
-.dialog-actions button { flex: 1; }
+.dialog-actions button {
+  flex: 1;
+  font-family: var(--font-sans); font-size: 14px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
 .hint {
   color: var(--text-muted); font-family: var(--font-mono); font-size: 12px;
   min-height: 16px; margin-top: var(--space-sm);
@@ -299,9 +303,22 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 /* ---- custom-food form: basis toggle ---- */
 .basis-toggle { display: flex; gap: var(--space-lg); margin: var(--space-md) 0; }
 .basis-toggle label {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin: 0; text-transform: none; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 0; text-transform: none; font-weight: 700; white-space: nowrap;
+  cursor: pointer;
 }
+.basis-toggle input[type="radio"] {
+  appearance: none; -webkit-appearance: none;
+  width: 20px; height: 20px; margin: 0; min-height: 0; flex-shrink: 0;
+  border: var(--border-w) solid var(--ink); border-radius: 50%;
+  background: var(--card); box-shadow: none; cursor: pointer; position: relative;
+}
+.basis-toggle input[type="radio"]:checked { background: var(--accent); }
+.basis-toggle input[type="radio"]:checked::after {
+  content: ""; position: absolute; inset: 4px;
+  border-radius: 50%; background: var(--on-fill);
+}
+#add-custom-food { margin-bottom: var(--space-lg); }
 #add-custom-food-search { margin: var(--space-md) 0; }
 
 @media (prefers-reduced-motion: reduce) {
