@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.db import Base
 from app.models import Favorite, Food, Log
